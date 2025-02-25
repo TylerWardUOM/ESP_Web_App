@@ -71,3 +71,47 @@ async function startBuggy() {
         console.error("Error starting buggy:", error);
     }
 }
+
+async function fetchPorts() {
+    try {
+        const response = await fetch("http://localhost:3001/ports");
+        const ports = await response.json();
+        
+        const select = document.getElementById("port-select");
+        select.innerHTML = ""; // Clear previous options
+        
+        ports.forEach(port => {
+            const option = document.createElement("option");
+            option.value = port;
+            option.textContent = port;
+            select.appendChild(option);
+        });
+    } catch (error) {
+        console.error("Error fetching ports:", error);
+    }
+}
+
+// Call this when the page loads
+fetchPorts();
+
+async function connectToPort() {
+    const selectedPort = document.getElementById("port-select").value;
+
+    if (!selectedPort) {
+        alert("Please select a port");
+        return;
+    }
+
+    try {
+        const response = await fetch("http://localhost:3001/set-port", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ portName: selectedPort })
+        });
+
+        const result = await response.json();
+        alert(result.message);
+    } catch (error) {
+        console.error("Error setting port:", error);
+    }
+}
