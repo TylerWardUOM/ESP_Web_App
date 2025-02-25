@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buggy Control Panel</title>
+    <script defer src="script.js"></script>
+</head>
+<body>
+    <h1>Buggy Control Panel</h1>
+
+    <h2>Current Mode: <span id="mode">Fetching...</span></h2>
+
+    <h3>Parameters</h3>
+    <div id="parameters"></div> <!-- This will hold the parameters -->
+
+    <button onclick="updateParameters()">Update Parameters</button>
+
+    <h3>Start Movement</h3>
+    <button onclick="startBuggy()">GO</button>
+</body>
+</html>
