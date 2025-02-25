@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Page</title>
+    <style>
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        table, th, td { border: 1px solid black; }
+        th, td { padding: 8px; text-align: left; }
+        th { background-color: #f2f2f2; }
+    </style>
+</head>
+<body>
+    <h1>Debug Data</h1>
+    <button id="fetchDebugData">Fetch Debug Data</button>
+    <div id="debugDataTable"></div>
+
+    <script>
+        // Function to fetch and display the debug data in a table
+        async function fetchDebugData() {
+            try {
+                console.log("📡 Fetching debug data...");
+
+                // Make the API request to fetch the debug data
+                const response = await fetch('http://localhost:3001/debug-data');
+                
+                // Ensure we get a valid response
+                if (!response.ok) {
+                    console.error("❌ Failed to fetch debug data. Status:", response.status);
+                    return;
+                }
+
+                const data = await response.json();
+                console.log("📝 Raw response:", data);
+
+                // Ensure the response is an array
+                if (!Array.isArray(data)) {
+                    console.error("❌ Invalid debug data format, expected an array but got:", data);
+                    return;
+                }
+
+                const debugData = data;
+                console.log("✅ Parsed debug data:", debugData);
+
+                // If there is no debug data, show a message
+                if (debugData.length === 0) {
+                    console.warn("⚠️ No debug data available.");
+                    document.getElementById("debugDataTable").innerHTML = "<p>No debug data received.</p>";
+                    return;
+                }
+
+                // Create the table structure dynamically
+                const debugTable = document.createElement("table");
+                const header = document.createElement("tr");
+
+                // Create headers from the first object keys
+                const headers = Object.keys(debugData[0]);
+                headers.forEach(text => {
+                    const th = document.createElement("th");
+                    th.textContent = text;
+                    header.appendChild(th);
+                });
+                debugTable.appendChild(header);
+
+                // Create rows for each debug entry
+                debugData.forEach(debugLine => {
+                    const row = document.createElement("tr");
+
+                    headers.forEach(key => {
+                        const cell = document.createElement("td");
+                        cell.textContent = debugLine[key] || ""; // Fill with empty string if the value is missing
+                        row.appendChild(cell);
+                    });
+
+                    debugTable.appendChild(row);
+                });
+
+                // Clear existing table and append the new one
+                const debugTableContainer = document.getElementById("debugDataTable");
+                debugTableContainer.innerHTML = ""; // Clear old data
+                debugTableContainer.appendChild(debugTable);
+
+            } catch (error) {
+                console.error("❌ Error fetching debug data:", error);
+                document.getElementById("debugDataTable").innerHTML = "<p>Error fetching debug data. Please try again later.</p>";
+            }
+        }
+        document.getElementById("fetchDebugData").addEventListener("click", fetchDebugData);
+    </script>
+</body>
+</html>

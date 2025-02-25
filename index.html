@@ -11,7 +11,19 @@
 
     <h2>Select COM Port</h2>
     <select id="port-select"></select>
-    <button onclick="connectToPort()">Connect</button>
+    <button id="connect-btn" onclick="connectToPort()">Connect</button>
+    <!-- Dropdown for selecting mode -->
+    <label for="modeSelect">Choose Mode:</label>
+    <select id="modeSelect" name="mode">
+        <option value="IDLE">Idle Mode</option>
+        <option value="1">Speed Control Mode</option>
+        <option value="SQUARE_IDLE">Square Idle Mode</option>
+        <option value="STRAIGHT_LINE">Line Menu Mode</option>
+        <option value="TURN_ANGLE">Turn Menu Mode</option>
+    </select>
+
+    <!-- Button to submit the change -->
+    <button onclick="changeMode()">Change Mode</button>
 
     <h2>Current Mode: <span id="mode">Fetching...</span></h2>
 
