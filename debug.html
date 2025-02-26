@@ -14,6 +14,7 @@
 <body>
     <h1>Debug Data</h1>
     <button id="fetchDebugData">Fetch Debug Data</button>
+    <button onclick="downloadCSV()">Download CSV</button>
     <div id="debugDataTable"></div>
 
     <script>
@@ -87,6 +88,9 @@
             }
         }
         document.getElementById("fetchDebugData").addEventListener("click", fetchDebugData);
+        function downloadCSV() {
+            window.location.href = "http://localhost:3001/debug-data.csv"; // Triggers CSV download
+        }
     </script>
 </body>
 </html>

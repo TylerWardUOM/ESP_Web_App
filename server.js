@@ -238,10 +238,6 @@ function parseDebugLine(line) {
 app.get("/debug-data", (req, res) => {
     console.log("📤 Sending debug data to frontend:", accumulatedDebugData);
     res.json(accumulatedDebugData);
-
-    // Optional: Clear data after sending
-    accumulatedDebugData = [];
-    console.log("🔄 Debug data reset after sending.");
 });
 
 // Function to handle when debug data is ready
@@ -249,6 +245,23 @@ function sendDebugDataToFrontend() {
     console.log("📤 Debug data ready, available at /debug-data:", accumulatedDebugData);
 }
 
+// API to download debug data as a CSV file
+app.get("/debug-data.csv", (req, res) => {
+    if (accumulatedDebugData.length === 0) {
+        return res.status(400).send("No debug data available.");
+    }
+
+    // Convert data to CSV format
+    const headers = Object.keys(accumulatedDebugData[0]).join(",");
+    const csvRows = accumulatedDebugData.map(row => Object.values(row).join(","));
+    const csvContent = [headers, ...csvRows].join("\n");
+
+    // Send CSV file as response
+    res.header("Content-Type", "text/csv");
+    res.attachment("debug_data.csv");
+    res.send(csvContent);
+    console.log("📂 CSV file generated and sent to frontend.");
+});
 
 
 
