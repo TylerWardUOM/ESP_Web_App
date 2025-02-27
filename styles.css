@@ -132,6 +132,29 @@ button:hover {
     background-color: #0056b3;
 }
 
+/* Mode & Parameters Display */
+#debugInfo {
+    background: white;
+    padding: 15px;
+    margin: 20px auto;
+    max-width: 600px;
+    border-radius: 10px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+#debugInfo p {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
+    margin: 5px 0;
+}
+
+#debugInfo strong {
+    color: #007bff;
+}
+
+
 /* Debug Table */
 #debugTable {
     width: 90%;
