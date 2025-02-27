@@ -45,20 +45,22 @@ class ConnectionManager {
     async scanBLE() {
         try {
             const device = await navigator.bluetooth.requestDevice({
-                acceptAllDevices: true,
-                optionalServices: [0xFFE0]
+                filters: [
+                    { services: [0xFFE0] }  
+                ]
             });
     
             if (device) {
-                console.log("Bluetooth device selected:", device.name);
+                console.log("✅ Bluetooth device selected:", device.name);
                 await this.connectBLE(device);
             } else {
-                console.log("No device selected.");
+                console.log("⚠️ No compatible device selected.");
             }
         } catch (error) {
-            console.error("Bluetooth scan failed:", error);
+            console.error("❌ Bluetooth scan failed:", error);
         }
     }
+    
     
     async scanSerial() {
         try {
@@ -247,13 +249,20 @@ class ConnectionManager {
         this.isSendingCommand = true;
         this.awaitingResponse = expectedResponse;
         this.lastResponse = null;
-        
+    
         try {
             let encodedCommand = new TextEncoder().encode(command + "\n");
-            console.log(`[sendCommandAndWait] 📤 Sending command: "${command}"`);
+            const maxChunkSize = 20; // HM-10 Limit
+    
+            console.log(`[sendCommandAndWait] 📤 Sending command: "${command}" (Total size: ${encodedCommand.length} bytes)`);
     
             if (this.bleCharacteristic) {
-                await this.bleCharacteristic.writeValue(encodedCommand);
+                for (let i = 0; i < encodedCommand.length; i += maxChunkSize) {
+                    let chunk = encodedCommand.slice(i, i + maxChunkSize);
+                    console.log(`[sendCommandAndWait] 📤 Sending chunk: ${new TextDecoder().decode(chunk)}`);
+                    await this.bleCharacteristic.writeValue(chunk);
+                    await new Promise(resolve => setTimeout(resolve, 50)); // Short delay to prevent overflow
+                }
             } else if (this.serialWriter) {
                 await this.serialWriter.write(encodedCommand);
             }
@@ -290,7 +299,6 @@ class ConnectionManager {
             this.isSendingCommand = false;
         }
     }
-    
     
 
     handleData(message) {
