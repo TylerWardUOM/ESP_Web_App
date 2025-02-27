@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
     <title>Buggy Control Panel</title>
     <style>
         body {
@@ -40,10 +41,11 @@
     <button id="connectButton" onclick="showConnectionOptions()">Connect to Buggy</button>
     <p id="connection-status">Not Connected</p>
 
+    <div id="overlay"></div>
     <div id="device-selection-modal">
         <h3>Select a Device</h3>
         <div id="device-list"></div>
-        <button onclick="document.getElementById('device-selection-modal').style.display='none'">Close</button>
+        <button onclick="closeModal()">Close</button>
     </div>
 
     <div id="controls">
@@ -68,8 +70,15 @@
 
     <div id="debugData">
         <h3>Debug Data</h3>
+        <button id="downloadDebugBtn">Download Debug Data</button>
         <div id="debugInfo"></div>
     </div>
+
+    <table id="debugTable">
+        <thead></thead>
+        <tbody></tbody>
+    </table>
+    
 
     <script src="connectionManager.js"></script>
 </body>
