@@ -16,6 +16,8 @@ class ConnectionManager {
         this.accumulatedDebugData = [];
         this.tempParams = {};
         this.buggyState = { mode: "", parameters: {} };
+        this.lastRunMode = null; 
+        this.lastRunParameters = {}; 
     }
 
     // Add a listener for a specific event
@@ -39,18 +41,6 @@ class ConnectionManager {
         this.listeners[event] = this.listeners[event].filter(listener => listener !== callback);
     }
     
-
-    async autoScan() {
-        this.bleDevices = await this.scanBLE();
-        this.serialDevices = await this.scanSerial();
-
-        if (this.bleDevices.length === 0 && this.serialDevices.length === 0) {
-            alert("No devices found.");
-            return;
-        }
-
-        this.showDeviceSelectionUI();
-    }
 
     async scanBLE() {
         try {
@@ -85,31 +75,6 @@ class ConnectionManager {
         }
     }
 
-    showDeviceSelectionUI() {
-        const container = document.getElementById("device-list");
-        container.innerHTML = ""; // Clear previous entries
-
-        [...this.bleDevices, ...this.serialDevices].forEach((device, index) => {
-            const button = document.createElement("button");
-            button.innerText = device.name || `Serial Port ${index + 1}`;
-            button.onclick = () => this.connectDevice(device);
-            container.appendChild(button);
-        });
-
-        document.getElementById("device-selection-modal").style.display = "block"; // Show modal
-    }
-
-    async connectDevice(device) {
-        document.getElementById("device-selection-modal").style.display = "none"; // Hide modal
-
-        if (this.bleDevices.includes(device)) {
-            this.connectionType = "ble";
-            await this.connectBLE(device);
-        } else {
-            this.connectionType = "serial";
-            await this.connectSerial(device);
-        }
-    }
 
     async connectBLE(device) {
         const status = document.getElementById("connection-status");
@@ -129,10 +94,11 @@ class ConnectionManager {
             this.isConnected = true;
             status.innerText = "✅ Connected via Bluetooth!";
             status.style.color = "green"; // Set text to green on successful connection
+            this.connectionType = "ble"
         } catch (error) {
             console.error("BLE Connection Error:", error);
             status.innerText = "❌ Bluetooth Connection Failed.";
-            status.style.color = "red"; // Set text to red on error
+            status.style.color = "#d9534f"; // Set text to red on error
         }
     }
 
@@ -188,7 +154,7 @@ class ConnectionManager {
             if (!this.serialReader) {
                 console.error("[connectSerial] ❌ Serial reader not available.");
                 status.innerText = "❌ Serial Connection Failed: No reader available.";
-                status.style.color = "red"; // Set text to red on error
+                status.style.color = "#d9534f"; // Set text to red on error
                 return;
             }
     
@@ -196,10 +162,11 @@ class ConnectionManager {
             this.isConnected = true;
             status.innerText = "✅ Connected via Serial!";
             status.style.color = "green"; // Set text to green on successful connection
+            this.connectionType = "serial"
         } catch (error) {
             console.error("[connectSerial] ❌ Serial Connection Error:", error);
             status.innerText = "❌ Serial Connection Failed.";
-            status.style.color = "red"; // Set text to red on error
+            status.style.color = "#d9534f"; // Set text to red on error
         }
     }
     
@@ -395,8 +362,11 @@ class ConnectionManager {
             console.log("🚀 DEBUG_END received, processing debug data:", this.accumulatedDebugData);
             this.awaitingDebugData = false;
             // Now update the debug UI with the collected data
-            updateDebugTable(this.accumulatedDebugData);
-            fetchState();
+            // Dispatch event for `updateDebugTable`
+            document.dispatchEvent(new CustomEvent("updateDebugTable", { detail: this.accumulatedDebugData }));
+            
+            // Dispatch event for `fetchState`
+            document.dispatchEvent(new Event("fetchState"));
         } 
         else if (this.awaitingDebugData) {
             if (!message.trim()) {
@@ -444,384 +414,97 @@ class ConnectionManager {
     async disconnect() {
         console.log("[disconnect] Begin Disconnect");
         const status = document.getElementById("connection-status");
+        
+        console.log(`[disconnect] Current Connection Type: ${this.connectionType}`);
     
         try {
-            if (this.connectionType === "ble" && this.bleCharacteristic) {
-                let device = this.bleCharacteristic.service.device;
-                if (device.gatt.connected) {
-                    console.log("[disconnect] 🔄 Forcing BLE disconnection...");
-                    device.gatt.disconnect();
+            if (this.connectionType === "ble") {
+                console.log("[disconnect] BLE mode detected.");
+                
+                if (this.bleCharacteristic) {
+                    let device = this.bleCharacteristic.service.device;
+                    
+                    if (device && device.gatt && device.gatt.connected) {
+                        console.log("[disconnect] 🔄 Forcing BLE disconnection...");
+                        device.gatt.disconnect();
+                    } else {
+                        console.warn("[disconnect] ⚠️ BLE device already disconnected or not found.");
+                    }
+    
+                    if (this.bleEventListener) {
+                        console.log("[disconnect] Removing BLE event listener...");
+                        this.bleCharacteristic.removeEventListener("characteristicvaluechanged", this.bleEventListener);
+                        this.bleEventListener = null;
+                    }
+    
+                    this.bleCharacteristic = null;
+                    console.log("[disconnect] ✅ BLE Disconnected.");
+                } else {
+                    console.warn("[disconnect] ⚠️ No BLE characteristic found.");
                 }
-                // Remove event listener using stored reference
-                if (this.bleEventListener) {
-                    this.bleCharacteristic.removeEventListener("characteristicvaluechanged", this.bleEventListener);
-                    this.bleEventListener = null;
-                }
-                // Optionally, you can remove the device from memory here if supported,
-                // but note that calling requestDevice may trigger a new device request.
-                this.bleCharacteristic = null;
-                console.log("[disconnect] ✅ Disconnected from BLE device.");
             } 
-            else if (this.connectionType === "serial" && this.serialPort) {
-                console.log("[disconnect] 🔄 Disconnecting Serial...");
-                if (this.serialReader) {
-                    await this.serialReader.cancel();
-                    this.serialReader.releaseLock();
-                    this.serialReader = null;
-                }
-                if (this.serialWriter) {
-                    await this.serialWriter.close();
-                    // Optionally release writer lock if needed
-                    if (this.serialWriter.releaseLock) {
-                        this.serialWriter.releaseLock();
+            
+            else if (this.connectionType === "serial") {
+                console.log("[disconnect] Serial mode detected.");
+                
+                if (this.serialPort) {
+                    console.log("[disconnect] 🔄 Disconnecting Serial...");
+    
+                    if (this.serialReader) {
+                        console.log("[disconnect] Canceling Serial Reader...");
+                        await this.serialReader.cancel().catch(err => console.error("[disconnect] ❌ Error canceling serial reader:", err));
+                        this.serialReader.releaseLock();
+                        this.serialReader = null;
                     }
-                    this.serialWriter = null;
-                }
-                await this.serialPort.close();
-                // If supported, forget the serial port before nulling it out:
-                if (navigator.serial && navigator.serial.forget) {
-                    try {
-                        await navigator.serial.forget(this.serialPort);
-                        console.log("[disconnect] 🔄 Serial device forgotten.");
-                    } catch (error) {
-                        console.warn("[disconnect] ⚠️ Could not revoke serial device permissions:", error);
+    
+                    if (this.serialWriter) {
+                        console.log("[disconnect] Closing Serial Writer...");
+                        await this.serialWriter.close().catch(err => console.error("[disconnect] ❌ Error closing serial writer:", err));
+    
+                        if (this.serialWriter.releaseLock) {
+                            this.serialWriter.releaseLock();
+                        }
+                        this.serialWriter = null;
                     }
+    
+                    console.log("[disconnect] Closing Serial Port...");
+                    await this.serialPort.close().catch(err => console.error("[disconnect] ❌ Error closing serial port:", err));
+    
+                    if (navigator.serial && navigator.serial.forget) {
+                        try {
+                            await navigator.serial.forget(this.serialPort);
+                            console.log("[disconnect] 🔄 Serial device forgotten.");
+                        } catch (error) {
+                            console.warn("[disconnect] ⚠️ Could not revoke serial device permissions:", error);
+                        }
+                    }
+    
+                    this.serialPort = null;
+                    console.log("[disconnect] ✅ Serial Disconnected.");
+                } else {
+                    console.warn("[disconnect] ⚠️ No Serial port found.");
                 }
-                this.serialPort = null;
-                console.log("[disconnect] ✅ Disconnected from Serial device.");
+            } 
+            
+            else {
+                console.warn("[disconnect] ⚠️ No connection type detected. Already disconnected?");
             }
     
             // Reset state and update UI status
             this.isConnected = false;
             this.connectionType = null;
-            status.innerText = "❌ Not Connected";
+            status.innerText = "Not Connected";
+            status.style.color = "#d9534f"; 
+            console.log("[disconnect] UI updated to Not Connected.");
+    
         } catch (error) {
             console.error("[disconnect] ❌ Error disconnecting:", error);
             status.innerText = "⚠️ Disconnect Error";
+            status.style.color = "#d9534f"; 
         }
     }
     
-    
 
 }
 
-const connectionManager = new ConnectionManager();
-
-// Fetch state on page load
-window.onload = async function () {
-    console.log("Page loaded");
-};
-
-function showConnectionOptions() {
-    document.getElementById("overlay").style.display = "block";
-    document.getElementById("device-selection-modal").style.display = "block";
-
-    const container = document.getElementById("device-list");
-    container.innerHTML = ""; // Clear previous entries
-
-    const bleButton = document.createElement("button");
-    bleButton.innerText = "Connect via Bluetooth";
-    bleButton.onclick = async () => {
-        await connectionManager.scanBLE();
-        handleConnectionSuccess();
-    };
-    container.appendChild(bleButton);
-
-    const serialButton = document.createElement("button");
-    serialButton.innerText = "Connect via Serial";
-    serialButton.onclick = async () => {
-        await connectionManager.scanSerial();
-        handleConnectionSuccess();
-    };
-    container.appendChild(serialButton);
-}
-
-function closeModal() {
-    document.getElementById("overlay").style.display = "none";
-    document.getElementById("device-selection-modal").style.display = "none";
-}
-
-function handleConnectionSuccess() {
-    if (connectionManager.isConnected) {
-        closeModal();
-        updateConnectionButton();
-        fetchState();
-    }
-}
-
-// Update the UI when connection status changes
-function updateConnectionButton() {
-    const button = document.getElementById("connectButton");
-    if (connectionManager.isConnected) {
-        button.innerText = "Disconnect";
-        button.onclick = () => disconnectDevice();
-    } else {
-        button.innerText = "Connect";
-        button.onclick = () => showConnectionOptions();
-    }
-}
-
-// Disconnect from the current device
-async function disconnectDevice() {
-    console.log("Disconnecting from device");
-    await connectionManager.disconnect();
-    updateConnectionButton();
-}
-
-async function fetchState() {
-    console.log("Fetching state and parameters");
-
-    await connectionManager.sendCommandAndWait("STATE", "MODE:", 5000);
-    await connectionManager.sendCommandAndWait("PARAMETER", "PARAMETERS_DONE", 5000);
-
-    updateUI();
-}
-
-function updateUI() {
-    console.log("Updating UI with state:", connectionManager.buggyState);
-
-    // Update mode
-    document.getElementById("mode").innerText = connectionManager.buggyState.mode;
-
-    // Get the parameters div
-    const paramDiv = document.getElementById("parameters");
-    if (!paramDiv) {
-        console.error("❌ ERROR: Parameters div not found!");
-        return;
-    }
-
-    // Clear the parameter list
-    paramDiv.innerHTML = "";
-
-    // Ensure parameters exist before updating UI
-    if (!connectionManager.buggyState.parameters || Object.keys(connectionManager.buggyState.parameters).length === 0) {
-        console.warn("⚠️ No parameters to display.");
-        return;
-    }
-
-    console.log("Parameters received:", connectionManager.buggyState.parameters);
-
-    // Store the current parameters state for change detection
-    connectionManager.initialParameters = { ...connectionManager.buggyState.parameters };
-
-    // Add input fields for each parameter
-    Object.entries(connectionManager.buggyState.parameters).forEach(([key, value]) => {
-        console.log(`Adding parameter: ${key} = ${value}`);
-
-        const paramRow = document.createElement("div");
-        paramRow.classList.add("parameter-item"); // Add the class for styling
-
-        const input = document.createElement("input");
-        input.type = "text";
-        input.id = `param-${key}`;
-        input.value = value;
-        input.dataset.initial = value; // Store initial value for comparison
-        input.style.color = "gray"; // Start with gray text
-
-        // Change color when the user edits the field
-        input.addEventListener("input", () => {
-            input.style.color = (input.value.trim() === input.dataset.initial) ? "gray" : "black";
-        });
-
-        const label = document.createElement("label");
-        label.innerText = `${key}: `;
-
-        paramRow.appendChild(label);
-        paramRow.appendChild(input);
-        paramDiv.appendChild(paramRow);
-    });
-}
-
-async function updateParameters() {
-    console.log("Checking for parameter updates");
-    const paramInputs = document.querySelectorAll("#parameters input");
-    let updates = [];
-
-    paramInputs.forEach(input => {
-        const key = input.id.replace("param-", "");
-        const newValue = input.value.trim();
-        const initialValue = input.dataset.initial;
-
-        const parsedValue = isNaN(newValue) ? newValue : parseFloat(newValue);
-        const parsedInitialValue = isNaN(initialValue) ? initialValue : parseFloat(initialValue);
-
-        if (parsedValue !== parsedInitialValue) {
-            updates.push({ key, value: parsedValue });
-        }
-    });
-
-    if (updates.length === 0) {
-        console.log("No changes detected in parameters");
-        alert("No changes made.");
-        return;
-    }
-
-    for (const { key, value } of updates) {
-        console.log(`Sending parameter update: ${key}=${value}`);
-
-        try {
-            await connectionManager.sendCommandAndWait(
-                `PARAM:${key}=${value}`,
-                new RegExp(`Updated:\\s*${key}\\s*=\\s*${value}`), 
-                5000
-            );
-            console.log(`✅ Confirmed update for ${key}=${value}`);
-        } catch (error) {
-            console.error(`❌ Error updating ${key}:`, error);
-            alert(`Failed to update ${key}`);
-            return;
-        }
-    }
-
-    alert("All parameters updated!");
-
-    // Reset all input colors to gray after update
-    paramInputs.forEach(input => {
-        input.dataset.initial = input.value; // Update stored initial value
-        input.style.color = "gray"; // Reset color
-    });
-
-    fetchState();
-}
-
-
-async function startBuggy() {
-    console.log("Starting buggy movement");
-    document.getElementById("mode").innerText = "waiting_for_movement";
-
-    try {
-        await connectionManager.sendCommandAndWait("GO", "STARTING MOVEMENT", 100000);
-        console.log("✅ Movement started");
-        fetchState();
-    } catch (error) {
-        console.error("❌ Error starting movement:", error);
-        alert("Failed to start movement");
-    }
-}
-
-async function changeMode() {
-    if (!connectionManager.isConnected) {
-        alert("Please connect to a device first.");
-        return;
-    }
-
-    const selectedMode = document.getElementById("modeSelect").value;
-    console.log(`Changing mode to: ${selectedMode}`);
-
-    try {
-        await connectionManager.sendCommandAndWait(`SET_MODE:${selectedMode}`, new RegExp(`MODE_CHANGED:${selectedMode}`), 5000);
-        console.log(`✅ Mode changed to ${selectedMode}`);
-    } catch (error) {
-        console.error("❌ Error changing mode:", error);
-        alert("Failed to change mode");
-        return;
-    }
-
-    fetchState();
-}
-
-
-connectionManager.onMessageReceived = (message) => {
-    console.log("Received message from buggy:", message);
-    if (message.includes("MOVEMENT FINISHED")) {
-        console.log("Movement finished detected");
-        fetchState();
-    } else if (message.startsWith("DEBUG DATA:")) {
-        console.log("Debug data detected, fetching debug data");
-        fetchDebugData();
-    }
-};
-
-function updateDebugTable(accumulatedDebugData) {
-    const table = document.querySelector("#debugTable");
-    if (!table) {
-        console.error("❌ ERROR: Debug table not found!");
-        return;
-    }
-
-    const tableHead = table.querySelector("thead");
-    const tableBody = table.querySelector("tbody");
-
-    if (!accumulatedDebugData || accumulatedDebugData.length === 0) {
-        console.warn("⚠️ No debug data available.");
-        tableHead.innerHTML = "<tr><th>No Data</th></tr>";
-        tableBody.innerHTML = "";
-        return;
-    }
-
-    // Extract all unique keys from the received debug data
-    const allKeys = new Set();
-    accumulatedDebugData.forEach(data => {
-        Object.keys(data).forEach(key => allKeys.add(key));
-    });
-
-    // Convert Set to an array and sort (optional)
-    const headers = Array.from(allKeys);
-
-    // Update Table Headers
-    tableHead.innerHTML = "";
-    const headerRow = document.createElement("tr");
-    headers.forEach(header => {
-        const th = document.createElement("th");
-        th.textContent = header;
-        headerRow.appendChild(th);
-    });
-    tableHead.appendChild(headerRow);
-
-    // Update Table Body
-    tableBody.innerHTML = "";
-    accumulatedDebugData.forEach(data => {
-        const row = document.createElement("tr");
-        headers.forEach(header => {
-            const cell = document.createElement("td");
-            cell.textContent = data[header] || ""; // Fill missing values with empty string
-            row.appendChild(cell);
-        });
-        tableBody.appendChild(row);
-    });
-
-    fetchState();
-}
-
-function downloadDebugCSV(accumulatedDebugData) {
-    if (!accumulatedDebugData || accumulatedDebugData.length === 0) {
-        console.warn("⚠️ No debug data available to download.");
-        alert("No debug data to download.");
-        return;
-    }
-
-    // Extract all unique keys from the debug data
-    const allKeys = new Set();
-    accumulatedDebugData.forEach(data => {
-        Object.keys(data).forEach(key => allKeys.add(key));
-    });
-
-    const headers = Array.from(allKeys);
-    let csvContent = headers.join(",") + "\n"; // Create CSV header row
-
-    accumulatedDebugData.forEach(data => {
-        let row = headers.map(header => {
-            const value = data[header] ?? ""; // Fill missing values with an empty string
-            return `"${value.toString().replace(/"/g, '""')}"`; // Escape double quotes
-        }).join(",");
-        csvContent += row + "\n";
-    });
-
-    // Create a Blob and download the file
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `debug_data_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-
-    console.log("📥 Debug data downloaded as CSV.");
-}
-
-document.getElementById("downloadDebugBtn").addEventListener("click", () => {
-    downloadDebugCSV(connectionManager.accumulatedDebugData);
-});
-
+export default ConnectionManager;
