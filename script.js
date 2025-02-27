@@ -192,7 +192,7 @@ async function startBuggy() {
     document.getElementById("mode").innerText = "waiting_for_movement";
 
     // Store the mode and parameters when "GO" is pressed
-    connectionManager.lastRunMode = connectionManager.mode;
+    connectionManager.lastRunMode = connectionManager.buggyState.mode;
     connectionManager.lastRunParameters = { ...connectionManager.buggyState.parameters };
 
     console.log("📌 Stored mode & parameters for debug:", connectionManager.lastRunMode, connectionManager.lastRunParameters);
@@ -200,7 +200,6 @@ async function startBuggy() {
     try {
         await connectionManager.sendCommandAndWait("GO", "STARTING MOVEMENT", 100000);
         console.log("✅ Movement started");
-        fetchState();
     } catch (error) {
         console.error("❌ Error starting movement:", error);
         alert("Failed to start movement");
