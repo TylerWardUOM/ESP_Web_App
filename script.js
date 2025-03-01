@@ -1,292 +1,365 @@
-// Fetch state & parameters on load
+import ConnectionManager from './connectionManager.js';
+
+const connectionManager = new ConnectionManager();
+
+// Fetch state on page load
 window.onload = async function () {
-    await fetchPorts(); // Ensure ports are populated on load
-    await fetchConnectionState(); // Fetch the connection state
+    console.log("Page loaded");
 };
 
-// Fetch the connection state
-async function fetchConnectionState() {
-    try {
-        const response = await fetch("http://localhost:3001/connection-state");
-        const data = await response.json();
-        
-        // Update the connection state on the UI
-        if (data.isConnected) {
-            isConnected = true;
-            document.getElementById("connect-btn").innerText = "Disconnect"; // Change button text to Disconnect
-        } else {
-            isConnected = false;
-            document.getElementById("connect-btn").innerText = "Connect"; // Change button text to Connect
-        }
+function showConnectionOptions() {
+    document.getElementById("overlay").style.display = "block";
+    document.getElementById("device-selection-modal").style.display = "block";
 
-        // Optionally, update the port display
-        if (data.currentPort) {
-            document.getElementById("port-select").value = data.currentPort;
-        }
+    const container = document.getElementById("device-list");
+    container.innerHTML = ""; // Clear previous entries
 
-        // Also fetch the buggy state and parameters after checking connection
+    const bleButton = document.createElement("button");
+    bleButton.innerText = "Connect via Bluetooth";
+    bleButton.onclick = async () => {
+        await connectionManager.scanBLE();
+        handleConnectionSuccess();
+    };
+    container.appendChild(bleButton);
+
+    const serialButton = document.createElement("button");
+    serialButton.innerText = "Connect via Serial";
+    serialButton.onclick = async () => {
+        await connectionManager.scanSerial();
+        handleConnectionSuccess();
+    };
+    container.appendChild(serialButton);
+}
+
+function closeModal() {
+    document.getElementById("overlay").style.display = "none";
+    document.getElementById("device-selection-modal").style.display = "none";
+}
+
+function handleConnectionSuccess() {
+    if (connectionManager.isConnected) {
+        closeModal();
+        updateConnectionButton();
         fetchState();
-    } catch (error) {
-        console.error("Error fetching connection state:", error);
     }
 }
 
-// Fetch buggy mode and parameters
+// Update the UI when connection status changes
+function updateConnectionButton() {
+    const button = document.getElementById("connectButton");
+    if (connectionManager.isConnected) {
+        button.innerText = "Disconnect";
+    } else {
+        button.innerText = "Connect to Buggy";
+    }
+}
+
+function handleConnectionButtonClick() {
+    if (connectionManager.isConnected) {
+        disconnectDevice();
+    } else {
+        showConnectionOptions();
+    }
+}
+
+
+// Disconnect from the current device
+async function disconnectDevice() {
+    console.log("Disconnecting from device");
+    await connectionManager.disconnect();
+    updateConnectionButton();
+}
+
 async function fetchState() {
-    try {
-        const response = await fetch("http://localhost:3001/state");
-        const data = await response.json();
-        
-        document.getElementById("mode").innerText = data.mode;
+    console.log("Fetching state and parameters");
 
-        // Display parameters with input fields
-        const paramDiv = document.getElementById("parameters");
-        paramDiv.innerHTML = ""; // Clear existing data
+    await connectionManager.sendCommandAndWait("STATE", "MODE:", 9000);
+    await connectionManager.sendCommandAndWait("PARAMETER", "PARAMETERS_DONE", 9000);
 
-        Object.entries(data.parameters).forEach(([key, value]) => {
-            const paramRow = document.createElement("div");
-
-            paramRow.innerHTML = `  
-                <label>${key}: </label>
-                <input type="text" id="param-${key}" placeholder="${value}">
-            `;
-            paramDiv.appendChild(paramRow);
-        });
-    } catch (error) {
-        console.error("Error fetching state:", error);
-    }
+    updateUI();
 }
 
-// Update parameters only if changed
+function updateUI() {
+    console.log("Updating UI with state:", connectionManager.buggyState);
+
+    // Update mode
+    document.getElementById("mode").innerText = connectionManager.buggyState.mode;
+
+    // Get the parameters div
+    const paramDiv = document.getElementById("parameters");
+    if (!paramDiv) {
+        console.error("❌ ERROR: Parameters div not found!");
+        return;
+    }
+
+    // Clear the parameter list
+    paramDiv.innerHTML = "";
+
+    // Ensure parameters exist before updating UI
+    if (!connectionManager.buggyState.parameters || Object.keys(connectionManager.buggyState.parameters).length === 0) {
+        console.warn("⚠️ No parameters to display.");
+        return;
+    }
+
+    console.log("Parameters received:", connectionManager.buggyState.parameters);
+
+    // Store the current parameters state for change detection
+    connectionManager.initialParameters = { ...connectionManager.buggyState.parameters };
+
+    // Add input fields for each parameter
+    Object.entries(connectionManager.buggyState.parameters).forEach(([key, value]) => {
+        console.log(`Adding parameter: ${key} = ${value}`);
+
+        const paramRow = document.createElement("div");
+        paramRow.classList.add("parameter-item"); // Add the class for styling
+
+        const input = document.createElement("input");
+        input.type = "text";
+        input.id = `param-${key}`;
+        input.value = value;
+        input.dataset.initial = value; // Store initial value for comparison
+        input.style.color = "gray"; // Start with gray text
+
+        // Change color when the user edits the field
+        input.addEventListener("input", () => {
+            input.style.color = (input.value.trim() === input.dataset.initial) ? "gray" : "black";
+        });
+
+        const label = document.createElement("label");
+        label.innerText = `${key}: `;
+
+        paramRow.appendChild(label);
+        paramRow.appendChild(input);
+        paramDiv.appendChild(paramRow);
+    });
+}
+
 async function updateParameters() {
+    console.log("Checking for parameter updates");
     const paramInputs = document.querySelectorAll("#parameters input");
-    let updates = {};
+    let updates = [];
 
     paramInputs.forEach(input => {
-        const key = input.id.replace("param-", ""); // Remove "param-" prefix
+        const key = input.id.replace("param-", "");
         const newValue = input.value.trim();
-        
-        if (newValue !== "") { // Only update if something was entered
-            updates[key] = parseFloat(newValue) || newValue; // Convert to number if possible
+        const initialValue = input.dataset.initial;
+
+        const parsedValue = isNaN(newValue) ? newValue : parseFloat(newValue);
+        const parsedInitialValue = isNaN(initialValue) ? initialValue : parseFloat(initialValue);
+
+        if (parsedValue !== parsedInitialValue) {
+            updates.push({ key, value: parsedValue });
         }
     });
 
-    if (Object.keys(updates).length === 0) {
+    if (updates.length === 0) {
+        console.log("No changes detected in parameters");
         alert("No changes made.");
         return;
     }
 
-    try {
-        await fetch("http://localhost:3001/update", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(updates),
-        });
+    for (const { key, value } of updates) {
+        console.log(`Sending parameter update: ${key}=${value}`);
 
-        alert("Updated parameters!");
-        fetchState(); // Refresh the display
-    } catch (error) {
-        console.error("Error updating parameters:", error);
+        try {
+            await connectionManager.sendCommandAndWait(
+                `PARAM:${key}=${value}`,
+                new RegExp(`Updated:\\s*${key}\\s*=\\s*${value}`), 
+                5000
+            );
+            console.log(`✅ Confirmed update for ${key}=${value}`);
+        } catch (error) {
+            console.error(`❌ Error updating ${key}:`, error);
+            alert(`Failed to update ${key}`);
+            return;
+        }
     }
+
+    alert("All parameters updated!");
+
+    // Reset all input colors to gray after update
+    paramInputs.forEach(input => {
+        input.dataset.initial = input.value; // Update stored initial value
+        input.style.color = "gray"; // Reset color
+    });
+
+    fetchState();
 }
 
-// Function to start the movement when the GO button is pressed
+
 async function startBuggy() {
+    console.log("Starting buggy movement");
+    document.getElementById("mode").innerText = "waiting_for_movement";
+
+    // Store the mode and parameters when "GO" is pressed
+    connectionManager.lastRunMode = connectionManager.buggyState.mode;
+    connectionManager.lastRunParameters = { ...connectionManager.buggyState.parameters };
+
+    console.log("📌 Stored mode & parameters for debug:", connectionManager.lastRunMode, connectionManager.lastRunParameters);
+
     try {
-        // Disable all UI controls while movement is starting
-        disableUI();
-
-        // Update mode to "waiting_for_movement" and clear the parameters
-        document.getElementById("mode").innerText = "waiting_for_movement";
-        document.getElementById("parameters").innerHTML = ""; // Clear parameters list
-
-        const response = await fetch("http://localhost:3001/start", { method: "POST" });
-        const data = await response.json();
-
-        if (data.message === "STARTING MOVEMENT") {
-            // Optionally alert the user or update the status
-            //document.getElementById("status").innerText = "Waiting for movement to finish..."; // Update UI
-        }
-
-        // Poll the server to check if the movement is finished
-        const movementFinished = await checkIfMovementFinished();
-
-        if (movementFinished) {
-            // Fetch the new state after movement is finished
-            await fetchState();  // Fetch the state again after movement finishes
-
-            // Re-enable UI controls after movement finishes
-            enableUI();
-
-            window.open('debug.html', '_blank');
-        } else {
-            // Handle unexpected results or timeouts
-            //document.getElementById("status").innerText = "Error: Movement did not finish as expected.";
-            enableUI();
-        }
+        await connectionManager.sendCommandAndWait("GO", "STARTING MOVEMENT", 100000);
+        console.log("✅ Movement started");
     } catch (error) {
-        console.error("Error starting buggy:", error);
-        //document.getElementById("status").innerText = "Error: Could not start movement.";
-        enableUI(); // Re-enable UI controls in case of error
+        console.error("❌ Error starting movement:", error);
+        alert("Failed to start movement");
     }
 }
 
-// Disable UI controls during movement
-function disableUI() {
-    // Disable all inputs and buttons related to controlling the buggy
-    const controls = document.querySelectorAll('input, button');
-    controls.forEach(control => {
-        control.disabled = true;
-    });
-}
 
-// Enable UI controls after movement finishes
-function enableUI() {
-    // Enable all inputs and buttons
-    const controls = document.querySelectorAll('input, button');
-    controls.forEach(control => {
-        control.disabled = false;
-    });
-}
-
-
-// Poll the server to check if the movement is finished
-async function checkIfMovementFinished() {
-    return new Promise((resolve, reject) => {
-        const interval = setInterval(async () => {
-            try {
-                const response = await fetch("http://localhost:3001/is-movement-finished");
-                const data = await response.json();
-                if (data.finished) {
-                    clearInterval(interval);
-                    //document.getElementById("status").innerText = "Movement finished!";
-                    resolve(true); // Movement is finished
-                }
-            } catch (error) {
-                clearInterval(interval);
-                reject("Error checking movement status.");
-            }
-        }, 300); // Check every second
-
-        // Set a timeout to prevent infinite polling
-        setTimeout(() => {
-            clearInterval(interval);
-            reject("Timeout waiting for movement to finish.");
-        }, 30000); // Timeout after 30 seconds
-    });
-}
-
-async function fetchPorts() {
-    try {
-        const response = await fetch("http://localhost:3001/ports");
-        const ports = await response.json();
-        
-        const select = document.getElementById("port-select");
-        select.innerHTML = ""; // Clear previous options
-        
-        ports.forEach(port => {
-            const option = document.createElement("option");
-            option.value = port;
-            option.textContent = port;
-            select.appendChild(option);
-        });
-    } catch (error) {
-        console.error("Error fetching ports:", error);
-    }
-}
-
-// Call this when the page loads
-fetchPorts();
-
-let isConnected = false; // Track connection state
-
-async function connectToPort() {
-    const selectedPort = document.getElementById("port-select").value;
-
-    if (!selectedPort) {
-        alert("Please select a port");
+async function changeMode() {
+    if (!connectionManager.isConnected) {
+        alert("Please connect to a device first.");
         return;
     }
 
-    try {
-        if (isConnected) {
-            // If already connected, disconnect
-            const response = await fetch("http://localhost:3001/disconnect", {
-                method: "POST",
-            });
-            const result = await response.json();
-            alert(result.message);
-
-            document.getElementById("connect-btn").innerText = "Connect"; // Change button back to Connect
-            isConnected = false; // Update the state
-            fetchState();
-        } else {
-            // If not connected, attempt to connect
-            const response = await fetch("http://localhost:3001/set-port", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ portName: selectedPort })
-            });
-
-            const result = await response.json();
-            alert(result.message);
-
-            // After successful connection, fetch state
-            fetchState(); // Fetch state and parameters right after connecting to the port
-
-            // Change button text to Disconnect
-            document.getElementById("connect-btn").innerText = "Disconnect";
-            isConnected = true; // Update the connection state
-        }
-    } catch (error) {
-        console.error("Error setting port:", error);
-    }
-}
-
-// Function to handle the mode change when the button is clicked
-function changeMode() {
-    // Check if the system is connected before allowing mode change
-    if (!isConnected) {
-        alert("Please connect to a port first.");
-        return;
-    }
-
-    // Get the selected mode from the dropdown
     const selectedMode = document.getElementById("modeSelect").value;
+    console.log(`Changing mode to: ${selectedMode}`);
 
-    // Here, we are sending the selected mode to the backend (or Bluetooth device)
-    sendModeChangeRequest(selectedMode);
-}
-
-// Function to send the mode change request to the server/backend
-async function sendModeChangeRequest(mode) {
     try {
-        const response = await fetch("http://localhost:3001/setMode", {
-            method: "POST", // Use POST instead of GET
-            headers: {
-                "Content-Type": "application/json" // Make sure the Content-Type is JSON
-            },
-            body: JSON.stringify({ mode: mode }) // Send the mode as JSON
-        });
-        
-        const data = await response.json();
-        console.log("Mode change request response:", data);
-
-        // After sending the mode change request, fetch the new state to confirm if the mode was updated
-        const oldmode = document.getElementById("mode").innerText; // Get the mode from the display
-
-        await fetchState();
-
-        const currentMode = document.getElementById("mode").innerText;
-
-        // Check if the mode has been updated successfully
-        if (currentMode != oldmode) {
-            //alert(`Successfully changed mode to ${mode}`);
-        } else {
-            alert("Error changing mode. Mode was not updated.");
-        }
+        await connectionManager.sendCommandAndWait(`SET_MODE:${selectedMode}`, new RegExp(`MODE_CHANGED:${selectedMode}`), 5000);
+        console.log(`✅ Mode changed to ${selectedMode}`);
     } catch (error) {
-        console.error("Error changing mode:", error);
-        alert("Error changing mode.");
+        console.error("❌ Error changing mode:", error);
+        alert("Failed to change mode");
+        return;
     }
+
+    fetchState();
 }
+
+
+connectionManager.onMessageReceived = (message) => {
+    console.log("Received message from buggy:", message);
+    if (message.includes("MOVEMENT FINISHED")) {
+        console.log("Movement finished detected");
+        fetchState();
+    } else if (message.startsWith("DEBUG DATA:")) {
+        console.log("Debug data detected, fetching debug data");
+        fetchDebugData();
+    }
+};
+
+function updateDebugTable(accumulatedDebugData) {
+    const table = document.querySelector("#debugTable");
+    if (!table) {
+        console.error("❌ ERROR: Debug table not found!");
+        return;
+    }
+
+    const modeUsed = document.querySelector("#modeUsed");
+    const parametersUsed = document.querySelector("#parametersUsed");
+
+    if (!table) {
+        console.error("❌ ERROR: Debug table not found!");
+        return;
+    }
+
+    // Update mode info
+    modeUsed.innerText = connectionManager.lastRunMode || "Unknown";
+
+    // Format parameters as key-value pairs without quotes
+    const params = connectionManager.lastRunParameters || {};
+    const formattedParams = Object.entries(params)
+        .map(([key, value]) => `${key}: ${value}`)
+        .join(", ");
+    
+    parametersUsed.innerText = formattedParams || "N/A";
+
+    if (!accumulatedDebugData || accumulatedDebugData.length === 0) {
+        console.warn("⚠️ No debug data available.");
+        table.innerHTML = "<tr><th>No Data</th></tr>";
+        return;
+    }
+
+    // Extract all unique keys from debug data
+    const allKeys = new Set();
+    accumulatedDebugData.forEach(data => Object.keys(data).forEach(key => allKeys.add(key)));
+
+    const headers = Array.from(allKeys);
+
+    // Update Table Headers
+    const tableHead = table.querySelector("thead");
+    tableHead.innerHTML = "<tr>" + headers.map(header => `<th>${header}</th>`).join("") + "</tr>";
+
+    // Update Table Body
+    const tableBody = table.querySelector("tbody");
+    tableBody.innerHTML = accumulatedDebugData.map(data => 
+        `<tr>${headers.map(header => `<td>${data[header] || ""}</td>`).join("")}</tr>`
+    ).join("");
+
+    fetchState();
+}
+
+
+function downloadDebugCSV(accumulatedDebugData) {
+    if (!accumulatedDebugData || accumulatedDebugData.length === 0) {
+        console.warn("⚠️ No debug data available to download.");
+        alert("No debug data to download.");
+        return;
+    }
+
+    const modeUsed = connectionManager.lastRunMode || "Unknown";
+    const parametersUsed = JSON.stringify(connectionManager.lastRunParameters || {});
+
+    // Extract all unique keys from debug data
+    const allKeys = new Set();
+    accumulatedDebugData.forEach(data => Object.keys(data).forEach(key => allKeys.add(key)));
+    const headers = Array.from(allKeys);
+
+    let csvContent = `Mode Used: ${modeUsed}\nParameters Used: ${parametersUsed}\n\n`; // Add mode & parameters at the top
+    csvContent += headers.join(",") + "\n"; // Column headers
+
+    accumulatedDebugData.forEach(data => {
+        let row = headers.map(header => `"${(data[header] ?? "").toString().replace(/"/g, '""')}"`).join(",");
+        csvContent += row + "\n";
+    });
+
+    // Generate a filename with mode name
+    const fileName = `debug_${modeUsed}_${new Date().toISOString().slice(0, 19).replace(/:/g, "-")}.csv`;
+
+    // Create and download the CSV
+    const blob = new Blob([csvContent], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+
+    console.log(`📥 Debug data downloaded as CSV: ${fileName}`);
+}
+
+
+// ✅ Ensure all event listeners are added *after* the DOM is loaded
+document.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("connectButton").addEventListener("click", handleConnectionButtonClick);
+    document.getElementById("modeSelect").addEventListener("change", changeMode);
+    document.getElementById("modeSelect-button").addEventListener("click", changeMode);
+    document.getElementById("downloadDebugBtn").addEventListener("click", () => {
+        downloadDebugCSV(connectionManager.accumulatedDebugData);
+    });
+    
+    // Close modal button
+    document.querySelector("#device-selection-modal-close-button").addEventListener("click", closeModal);
+
+    // Button to update parameters
+    document.querySelector("#UpdateParameters").addEventListener("click", updateParameters);
+
+    // Start buggy button
+    document.querySelector("#Start-button").addEventListener("click", startBuggy);
+
+    console.log("✅ Event listeners initialized after DOM load.");
+});
+
+// Listen for debug table update
+document.addEventListener("updateDebugTable", (event) => {
+    updateDebugTable(event.detail);
+});
+
+// Listen for state fetch request
+document.addEventListener("fetchState", () => {
+    fetchState();
+});
