@@ -382,9 +382,20 @@ async function stopSensorDebug() {
 const sensorWeights = new Array(6).fill(1); // Default all weights to 1
 
 function updateSensorTable(sensorData) {
+
     const timeElapsed = sensorData.time;
     const sensorValues = sensorData.sensors;
     const errorValue = sensorData.error;
+
+    // ---- Update Line Detection Status ----
+    const lineStatus = document.getElementById("lineStatus");
+    if (errorValue === 999.0) {
+        lineStatus.innerText = "Line Not Found";
+        lineStatus.style.color = "red";
+    } else {
+        lineStatus.innerText = "Line Detected";
+        lineStatus.style.color = "green";
+    }
 
     // Get table body and bar graph container
     const tableBody = document.querySelector("#sensorDataTable tbody");
@@ -509,12 +520,23 @@ function updateSensorTable(sensorData) {
     let lineX = (estimatedLinePosMM + 50) * mmToPixel; // Shift -50mm → 0px, 50mm → width
 
     // ---- Draw Estimated Line Position ----
-    ctx.strokeStyle = "red";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.moveTo(lineX, 0);
-    ctx.lineTo(lineX, height);
-    ctx.stroke();
+    if (errorValue !== 999.0) {
+        const lineWidthMM = 17; // The width of the detected line in mm
+        const lineHalfWidthPixels = (lineWidthMM / 2) * mmToPixel; // Convert to pixels
+
+        // Draw semi-transparent line region (wider representation of the detected line)
+        ctx.fillStyle = "rgba(255, 0, 0, 0.3)"; // Red with transparency
+        ctx.fillRect(lineX - lineHalfWidthPixels, 0, lineHalfWidthPixels * 2, height);
+
+        // Draw solid centerline
+        ctx.strokeStyle = "red";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(lineX, 0);
+        ctx.lineTo(lineX, height);
+        ctx.stroke();
+    }
+
 }
 
 // Function to update weights from user input
