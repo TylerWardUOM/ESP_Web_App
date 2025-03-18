@@ -60,6 +60,7 @@
             <option value="FOLLOW_LINE">Follow PID Menu Mode</option>
             <option value="BANG_BANG">Bang Bang Menu Mode</option>
             <option value="BANG_BANG_PROPORTIONAL">Bang Bang Proportional Menu Mode</option>
+            <option value="SENSOR_DEBUG">Sensor Debug Mode</option>
         </select>
         <button id="modeSelect-button">Set Mode</button>
 
@@ -85,6 +86,46 @@
         <thead></thead>
         <tbody></tbody>
     </table>
+
+    <div id="sensorDataContainer" style="display: none; text-align: center;">
+        <div>
+            <h3>Sensor Data</h3>
+            <table id="sensorDataTable" border="1" style="margin: 0 auto;">
+                <thead>
+                    <tr>
+                        <th>Time</th>
+                        <th>S1</th><th>S2</th><th>S3</th><th>S4</th><th>S5</th><th>S6</th>
+                        <th>Error</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    
+        <div>
+            <h3>Sensor Bar Graph</h3>
+            <div id="sensorBarContainer" class="centered-container"></div>
+        </div>
+    
+        <div class="canvas-container">
+            <h3>Estimated Line Position</h3>
+            <canvas id="sensorCanvas"></canvas>
+        </div>
+    
+        <div>
+            <h3>Adjust Sensor Weights</h3>
+            <div id="weightControls" class="centered-container">
+                <label>S1: <input type="number" class="weight-input" value="1" step="0.1"></label>
+                <label>S2: <input type="number" class="weight-input" value="1" step="0.1"></label>
+                <label>S3: <input type="number" class="weight-input" value="1" step="0.1"></label>
+                <label>S4: <input type="number" class="weight-input" value="1" step="0.1"></label>
+                <label>S5: <input type="number" class="weight-input" value="1" step="0.1"></label>
+                <label>S6: <input type="number" class="weight-input" value="1" step="0.1"></label>
+                <button id="updateWeightsButton">Update Weights</button>
+            </div>
+        </div>
+    </div>
+    
     
 
     <script type="module" src="script.js"></script>

@@ -187,3 +187,110 @@ button:hover {
         width: 100%;
     }
 }
+
+
+.sensor-data-wrapper {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-top: 10px;
+}
+
+#sensorDataTable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+#sensorDataTable th, #sensorDataTable td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+#sensorDataTable th {
+    background-color: #f4f4f4;
+    font-weight: bold;
+}
+
+#sensorDebugStatus {
+    font-weight: bold;
+    color: red;
+}
+
+button#toggleSensorDebugBtn {
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+
+.centered-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 20px 0;
+    width: 100%; /* Ensures the container doesn't shrink */
+}
+
+
+#sensorBarContainer {
+    display: flex;
+    justify-content: space-around;
+    align-items: flex-end;
+    height: 150px;
+    width: 90%; /* Limit width instead of full 100% */
+    border: 1px solid black;
+    padding: 10px;
+    position: relative;
+    margin:auto;
+}
+
+.bar-container {
+    position: relative;
+    width: 40px;
+    height: 100%;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+}
+
+.max-bar {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    background-color: lightgray;
+    border-radius: 5px;
+}
+
+.sensor-bar {
+    position: absolute;
+    width: 80%;
+    background-color: blue;
+    border-radius: 5px;
+    text-align: center;
+    color: white;
+    font-size: 12px;
+    bottom: 0; /* Ensure bar starts from the bottom */
+}
+
+.canvas-container {
+    width: 80%;
+    max-width: 600px;
+    margin: 20px auto;
+}
+
+#sensorCanvas {
+    width: 100%;
+    height: 250px;
+    border: 1px solid black;
+}
+
+#weightControls {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}

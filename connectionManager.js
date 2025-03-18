@@ -391,7 +391,29 @@ class ConnectionManager {
                 console.warn("⚠️ Ignoring empty debug line");
             }
         }
-        
+        // --- Sensor Data Handling ---
+        else if (message.startsWith("SENSOR DATA:")) {
+            console.log("📡 Sensor data detected, updating UI...");
+
+            // Extract sensor data
+            const parts = message.replace("SENSOR DATA:", "").trim().split(/\s*\|\s*ERROR:\s*/);
+            const sensorValuesPart = parts[0].trim().split(" "); // Left side of "| ERROR:"
+            const errorValue = parseFloat(parts[1]); // Right side of "| ERROR:"
+
+            // Extract timestamp
+            const timeElapsed = sensorValuesPart.shift(); // First value is the timestamp
+            const sensorValues = sensorValuesPart.map(val => parseFloat(val)); // Convert sensor values;
+
+            // Create a sensor data object
+            const sensorData = {
+                time: timeElapsed,
+                sensors: sensorValues,
+                error: parseFloat(errorValue)
+            };
+
+            // Dispatch event for UI update
+            document.dispatchEvent(new CustomEvent("updateSensorTable", { detail: sensorData }));
+        } 
         else {
             console.log("ℹ️ Unhandled message:", message);
         }
