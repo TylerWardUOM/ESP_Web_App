@@ -99,7 +99,7 @@ class DataHandler {
         this.lastResponse = message;
 
         // --- Mode Handling ---
-        if (message.startsWith("MODE:")) {
+        if (message.startsWith("MODE")) {
             this.buggyState.mode = message.split(":")[1].trim();
             this.isReadingParams = false;
             if (this.awaitingResponse === "MODE") this.awaitingResponse = null;

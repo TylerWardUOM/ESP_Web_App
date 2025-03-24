@@ -67,4 +67,4 @@ class Device {
     }
 }
 
-export default Device;
+export const device = new Device();
