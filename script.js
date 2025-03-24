@@ -1,11 +1,18 @@
-import ConnectionManager from './connectionManager.js';
-
-const connectionManager = new ConnectionManager();
+import Device from './Device.js';
+import UIHandler from './StatusUiHandler.js';
+const device = new Device();
 
 // Fetch state on page load
 window.onload = async function () {
     console.log("Page loaded");
 };
+
+const uiHandler = new UIHandler();
+// Subscribe to events
+device.connectionManager.on("connectionStatus", (status) => {
+    uiHandler.updateConnectionStatus(status.type, status.status);
+});
+
 
 function showConnectionOptions() {
     document.getElementById("overlay").style.display = "block";
@@ -17,7 +24,7 @@ function showConnectionOptions() {
     const bleButton = document.createElement("button");
     bleButton.innerText = "Connect via Bluetooth";
     bleButton.onclick = async () => {
-        await connectionManager.scanBLE();
+        await device.scanBLE();
         handleConnectionSuccess();
     };
     container.appendChild(bleButton);
@@ -25,7 +32,7 @@ function showConnectionOptions() {
     const serialButton = document.createElement("button");
     serialButton.innerText = "Connect via Serial";
     serialButton.onclick = async () => {
-        await connectionManager.scanSerial();
+        await device.scanSerial();
         handleConnectionSuccess();
     };
     container.appendChild(serialButton);
@@ -37,7 +44,7 @@ function closeModal() {
 }
 
 function handleConnectionSuccess() {
-    if (connectionManager.isConnected) {
+    if (device.isConnected) {
         closeModal();
         updateConnectionButton();
         fetchState();
@@ -47,7 +54,7 @@ function handleConnectionSuccess() {
 // Update the UI when connection status changes
 function updateConnectionButton() {
     const button = document.getElementById("connectButton");
-    if (connectionManager.isConnected) {
+    if (device.isConnected) {
         button.innerText = "Disconnect";
     } else {
         button.innerText = "Connect to Buggy";
@@ -55,7 +62,7 @@ function updateConnectionButton() {
 }
 
 function handleConnectionButtonClick() {
-    if (connectionManager.isConnected) {
+    if (device.isConnected) {
         disconnectDevice();
     } else {
         showConnectionOptions();
@@ -66,24 +73,24 @@ function handleConnectionButtonClick() {
 // Disconnect from the current device
 async function disconnectDevice() {
     console.log("Disconnecting from device");
-    await connectionManager.disconnect();
+    await device.disconnect();
     updateConnectionButton();
 }
 
 async function fetchState() {
     console.log("Fetching state and parameters");
 
-    await connectionManager.sendCommandAndWait("STATE", "MODE:", 9000);
-    await connectionManager.sendCommandAndWait("PARAMETER", "PARAMETERS_DONE", 9000);
+    await device.sendCommandAndWait("STATE", "MODE:", 9000);
+    await device.sendCommandAndWait("PARAMETER", "PARAMETERS_DONE", 9000);
 
     updateUI();
 }
 
 function updateUI() {
-    console.log("Updating UI with state:", connectionManager.buggyState);
+    console.log("Updating UI with state:", device.buggyState);
 
     // Update mode
-    document.getElementById("mode").innerText = connectionManager.buggyState.mode;
+    document.getElementById("mode").innerText = device.buggyState.mode;
 
     // Get the parameters div
     const paramDiv = document.getElementById("parameters");
@@ -96,18 +103,18 @@ function updateUI() {
     paramDiv.innerHTML = "";
 
     // Ensure parameters exist before updating UI
-    if (!connectionManager.buggyState.parameters || Object.keys(connectionManager.buggyState.parameters).length === 0) {
+    if (!device.buggyState.parameters || Object.keys(device.buggyState.parameters).length === 0) {
         console.warn("⚠️ No parameters to display.");
         return;
     }
 
-    console.log("Parameters received:", connectionManager.buggyState.parameters);
+    console.log("Parameters received:", device.buggyState.parameters);
 
     // Store the current parameters state for change detection
-    connectionManager.initialParameters = { ...connectionManager.buggyState.parameters };
+    device.initialParameters = { ...device.buggyState.parameters };
 
     // Add input fields for each parameter
-    Object.entries(connectionManager.buggyState.parameters).forEach(([key, value]) => {
+    Object.entries(device.buggyState.parameters).forEach(([key, value]) => {
         console.log(`Adding parameter: ${key} = ${value}`);
 
         const paramRow = document.createElement("div");
@@ -162,7 +169,7 @@ async function updateParameters() {
         console.log(`Sending parameter update: ${key}=${value}`);
 
         try {
-            await connectionManager.sendCommandAndWait(
+            await device.sendCommandAndWait(
                 `PARAM:${key}=${value}`,
                 new RegExp(`Updated:\\s*${key}\\s*=\\s*${value}`), 
                 5000
@@ -192,13 +199,13 @@ async function startBuggy() {
     document.getElementById("mode").innerText = "waiting_for_movement";
 
     // Store the mode and parameters when "GO" is pressed
-    connectionManager.lastRunMode = connectionManager.buggyState.mode;
-    connectionManager.lastRunParameters = { ...connectionManager.buggyState.parameters };
+    device.lastRunMode = device.buggyState.mode;
+    device.lastRunParameters = { ...device.buggyState.parameters };
 
-    console.log("📌 Stored mode & parameters for debug:", connectionManager.lastRunMode, connectionManager.lastRunParameters);
+    console.log("📌 Stored mode & parameters for debug:", device.lastRunMode, device.lastRunParameters);
 
     try {
-        await connectionManager.sendCommandAndWait("GO", "STARTING MOVEMENT", 100000);
+        await device.sendCommandAndWait("GO", "STARTING MOVEMENT", 100000);
         console.log("✅ Movement started");
     } catch (error) {
         console.error("❌ Error starting movement:", error);
@@ -208,7 +215,7 @@ async function startBuggy() {
 
 
 async function changeMode() {
-    if (!connectionManager.isConnected) {
+    if (!device.isConnected) {
         alert("Please connect to a device first.");
         return;
     }
@@ -217,7 +224,7 @@ async function changeMode() {
     console.log(`Changing mode to: ${selectedMode}`);
 
     try {
-        await connectionManager.sendCommandAndWait(`SET_MODE:${selectedMode}`, new RegExp(`MODE_CHANGED:${selectedMode}`), 5000);
+        await device.sendCommandAndWait(`SET_MODE:${selectedMode}`, new RegExp(`MODE_CHANGED:${selectedMode}`), 5000);
         console.log(`✅ Mode changed to ${selectedMode}`);
 
         // If sensor debug mode is selected, start fetching sensor data
@@ -237,17 +244,6 @@ async function changeMode() {
 }
 
 
-connectionManager.onMessageReceived = (message) => {
-    console.log("Received message from buggy:", message);
-    if (message.includes("MOVEMENT FINISHED")) {
-        console.log("Movement finished detected");
-        fetchState();
-    } else if (message.startsWith("DEBUG DATA:")) {
-        console.log("Debug data detected, fetching debug data");
-        fetchDebugData();
-    }
-};
-
 function updateDebugTable(accumulatedDebugData) {
     const table = document.querySelector("#debugTable");
     if (!table) {
@@ -264,10 +260,10 @@ function updateDebugTable(accumulatedDebugData) {
     }
 
     // Update mode info
-    modeUsed.innerText = connectionManager.lastRunMode || "Unknown";
+    modeUsed.innerText = device.lastRunMode || "Unknown";
 
     // Format parameters as key-value pairs without quotes
-    const params = connectionManager.lastRunParameters || {};
+    const params = device.lastRunParameters || {};
     const formattedParams = Object.entries(params)
         .map(([key, value]) => `${key}: ${value}`)
         .join(", ");
@@ -307,8 +303,8 @@ function downloadDebugCSV(accumulatedDebugData) {
         return;
     }
 
-    const modeUsed = connectionManager.lastRunMode || "Unknown";
-    const parametersUsed = JSON.stringify(connectionManager.lastRunParameters || {});
+    const modeUsed = device.lastRunMode || "Unknown";
+    const parametersUsed = JSON.stringify(device.lastRunParameters || {});
 
     // Extract all unique keys from debug data
     const allKeys = new Set();
@@ -554,7 +550,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("modeSelect").addEventListener("change", changeMode);
     document.getElementById("modeSelect-button").addEventListener("click", changeMode);
     document.getElementById("downloadDebugBtn").addEventListener("click", () => {
-        downloadDebugCSV(connectionManager.accumulatedDebugData);
+        downloadDebugCSV(device.accumulatedDebugData);
     });
     
     // Close modal button

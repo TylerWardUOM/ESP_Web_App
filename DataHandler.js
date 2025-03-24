@@ -1,5 +1,5 @@
 class DataHandler {
-    constructor() {
+    constructor(bleCharacteristic = null, serialWriter = null) {
         this.isSendingCommand = false;
         this.awaitingResponse = null;
         this.lastResponse = null;
@@ -8,23 +8,27 @@ class DataHandler {
         this.isReadingParams = false;
         this.tempParams = {};
         this.buggyState = { mode: "", parameters: {} };
-        this.connection = null; 
-        this.connectionType = null;
+        this.isMovementFinished = false;
+        this.bleCharacteristic = bleCharacteristic;
+        this.serialWriter = serialWriter;
     }
 
-    setConnection(connection,connectionType) {
-        this.connection = connection;
-        this.connectionType = connectionType;
+    setBLE(bleCharacteristic) {
+        this.bleCharacteristic = bleCharacteristic;
     }
 
-    async sendCommandAndWait(command, expectedResponse, type, timeout = 5000) {
-        if (!this.isConnected) {
-            console.warn("[sendCommandAndWait] ⚠️ Not connected!");
+    setSerial(serialWriter) {
+        this.serialWriter = serialWriter;
+    }
+
+    async sendCommandAndWait(command, expectedResponse, timeout = 5000) {
+        if (!this.bleCharacteristic && !this.serialWriter) {
+            console.warn("[sendCommandAndWait] ⚠️ No communication method set!");
             return;
         }
     
         if (this.isSendingCommand) {
-            console.warn("[sendCommandAndWait] ⏳ GATT operation in progress. Try again later.");
+            console.warn("[sendCommandAndWait] ⏳ Command in progress. Try again later.");
             return;
         }
     
@@ -33,13 +37,20 @@ class DataHandler {
         this.lastResponse = null;
     
         try {
-            if (type === "ble") {
-                await this.sendCommandToBLE(command);
-            } else if (type === "serial") {
-                await this.sendCommandToSerial(command);
-            } else {
-                console.error(`[sendCommandAndWait] ❌ Invalid connection type: ${type}`);
-                return;
+            let encodedCommand = new TextEncoder().encode(command + "\n");
+            const maxChunkSize = 20;
+    
+            console.log(`[sendCommandAndWait] 📤 Sending: "${command}"`);
+    
+            if (this.bleCharacteristic) {
+                for (let i = 0; i < encodedCommand.length; i += maxChunkSize) {
+                    let chunk = encodedCommand.slice(i, i + maxChunkSize);
+                    console.log(`[sendCommandAndWait] 📤 BLE Chunk: ${new TextDecoder().decode(chunk)}`);
+                    await this.bleCharacteristic.writeValue(chunk);
+                    await new Promise(resolve => setTimeout(resolve, 50));
+                }
+            } else if (this.serialWriter) {
+                await this.serialWriter.write(encodedCommand);
             }
     
             return new Promise((resolve, reject) => {
@@ -74,26 +85,7 @@ class DataHandler {
             this.isSendingCommand = false;
         }
     }
-
-    waitForResponse(expectedResponse) {
-        return new Promise((resolve) => {
-            const checkResponse = () => {
-                if (this.lastResponse && (
-                    (typeof expectedResponse === "string" && this.lastResponse.startsWith(expectedResponse)) ||
-                    (expectedResponse instanceof RegExp && expectedResponse.test(this.lastResponse))
-                )) {
-                    resolve();
-                } else {
-                    setTimeout(checkResponse, 50);
-                }
-            };
-            checkResponse();
-        });
-    }
-
-    timeoutPromise(ms, message) {
-        return new Promise((_, reject) => setTimeout(() => reject(new Error(message)), ms));
-    }
+    
 
     handleData(message) {
         if (!message || message.trim().length === 0) {
@@ -106,32 +98,52 @@ class DataHandler {
 
         this.lastResponse = message;
 
+        // --- Mode Handling ---
         if (message.startsWith("MODE:")) {
             this.buggyState.mode = message.split(":")[1].trim();
             this.isReadingParams = false;
-        } else if (message.startsWith("PARAMETERS:")) {
+            if (this.awaitingResponse === "MODE") this.awaitingResponse = null;
+        } 
+        // --- Parameter Handling ---
+        else if (message.startsWith("PARAMETERS:")) {
             this.isReadingParams = true;
             this.tempParams = {};
-        } else if (message.startsWith("PARAMETERS_DONE")) {
+        } 
+        else if (message.startsWith("PARAMETERS_DONE")) {
             this.isReadingParams = false;
             this.buggyState.parameters = { ...this.tempParams };
             console.log("✅ Parameters saved:", this.buggyState.parameters);
-        } else if (this.isReadingParams) {
+            if (this.awaitingResponse === "PARAMETERS") this.awaitingResponse = null;
+        } 
+        else if (this.isReadingParams) {
             this.extractParameters(message);
-        } else if (message.startsWith("Updated:")) {
+        } 
+        // --- Update Confirmation ---
+        else if (message.startsWith("Updated:")) {
             this.extractUpdatedValues(message);
-        } else if (message === "MOVEMENT FINISHED") {
+        } 
+        // --- Movement Finished ---
+        else if (message === "MOVEMENT FINISHED") {
             console.log("✅ Movement finished!");
-        } else if (message === "DEBUG DATA:") {
+            this.isMovementFinished = true;
+        } 
+        // --- Debug Data Handling ---
+        else if (message === "DEBUG DATA:") {
+            console.log("📡 Debug data started...");
             this.awaitingDebugData = true;
             this.accumulatedDebugData = [];
-        } else if (message === "DEBUG_END") {
+        } 
+        else if (message === "DEBUG_END") {
             this.processDebugData();
-        } else if (this.awaitingDebugData) {
+        } 
+        else if (this.awaitingDebugData) {
             this.processDebugLine(message);
-        } else if (message.startsWith("SENSOR DATA:")) {
+        } 
+        // --- Sensor Data Handling ---
+        else if (message.startsWith("SENSOR DATA:")) {
             this.processSensorData(message);
-        } else {
+        } 
+        else {
             console.log("ℹ️ Unhandled message:", message);
         }
     }
@@ -150,6 +162,9 @@ class DataHandler {
         const match = message.match(/Updated:\s*(\S+)\s*=\s*([\d.]+)/);
         if (match) {
             console.log(`✅ Update confirmed: ${match[1]} = ${match[2]}`);
+            if (this.awaitingResponse === `Updated: ${match[1]} = ${match[2]}`) {
+                this.awaitingResponse = null;
+            }
         }
     }
 
