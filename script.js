@@ -1,8 +1,9 @@
 import {device} from './Device.js';
 import { handleConnectionButtonClick, closeModal} from './buggyConnection.js';
 import { changeMode, updateParameters, startBuggy} from './BuggyCommands.js';
-import { updateDebugTable,downloadDebugCSV } from './buggyDebug.js';
+import { updateDebugTable,downloadDebugCSV, generateTrack } from './buggyDebug.js';
 import { updateWeights, updateSensorTable } from './sensorDebug.js';
+import { fetchState } from './BuggyState.js';
 // Fetch state on page load
 window.onload = async function () {
     console.log("Page loaded");
@@ -21,6 +22,9 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("modeSelect-button").addEventListener("click", changeMode);
     document.getElementById("downloadDebugBtn").addEventListener("click", () => {
         downloadDebugCSV(device.accumulatedDebugData);
+    });
+    document.getElementById("buggyPath").addEventListener("click", () => {
+        generateTrack(device.accumulatedDebugData);
     });
     
     // Close modal button
@@ -51,3 +55,4 @@ document.addEventListener("updateSensorTable", (event) => {
 document.addEventListener("fetchState", () => {
     fetchState();
 });
+

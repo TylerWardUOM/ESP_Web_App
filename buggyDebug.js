@@ -1,3 +1,6 @@
+import { device } from "./Device.js";
+import { fetchState } from "./BuggyState.js";
+
 export function updateDebugTable(accumulatedDebugData) {
     const table = document.querySelector("#debugTable");
     if (!table) {
@@ -88,5 +91,18 @@ export function downloadDebugCSV(accumulatedDebugData) {
     document.body.removeChild(a);
 
     console.log(`📥 Debug data downloaded as CSV: ${fileName}`);
+}
+
+// Function to trigger path computation
+export function generateTrack(accumulatedDebugData) {
+    if (!accumulatedDebugData.some(data => data.Left_Distance && data.Right_Distance && data.time)) {
+        alert("🚨 Missing required data (Left_Distance, Right_Distance, Time)");
+        return;
+    }
+    // Store data in localStorage for use in the new page
+    localStorage.setItem("buggyData", JSON.stringify(accumulatedDebugData));
+
+    // Open the new page
+    window.open("buggyPath.html", "_blank");
 }
 
