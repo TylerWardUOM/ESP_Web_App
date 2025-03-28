@@ -79,13 +79,10 @@ class ConnectionManager {
 
 
     async connectBLE(device) {
-        const status = document.getElementById("connection-status");
-        status.innerText = "🔄 Connecting via Bluetooth...";
-        status.style.color = "black"; // Default color during connection attempt
-    
+        this.emit("connectionStatus", { type: "ble", status: "connecting" });
+
         try {
             const server = await device.gatt.connect();
-            status.innerText = "🔄 Connected to device, discovering services...";
         
             const service = await server.getPrimaryService(0xFFE0);
             this.bleCharacteristic = await service.getCharacteristic(0xFFE1);
@@ -94,13 +91,12 @@ class ConnectionManager {
             await this.readBLE();
         
             this.isConnected = true;
-            status.innerText = "✅ Connected via Bluetooth!";
-            status.style.color = "green"; // Set text to green on successful connection
             this.connectionType = "ble"
+            this.emit("connectionStatus", { type: "ble", status: "connected" });
+            this.emit("connected");
         } catch (error) {
             console.error("BLE Connection Error:", error);
-            status.innerText = "❌ Bluetooth Connection Failed.";
-            status.style.color = "#d9534f"; // Set text to red on error
+            this.emit("connectionStatus", { type: "ble", status: "failed" });
         }
     }
 
@@ -128,7 +124,6 @@ class ConnectionManager {
             while (messages.length > 1) {
                 let message = messages.shift().trim();
                 console.log("[readBLE] 📥 Full message received:", message);
-                this.handleData(message);  // ✅ Consistent with readSerial
                 this.emit("dataReceived", message);
             }
             this.buffer = messages[0] || "";
@@ -139,10 +134,7 @@ class ConnectionManager {
     }
     
     async connectSerial(port) {
-        const status = document.getElementById("connection-status");
-        status.innerText = "🔄 Connecting via Serial...";
-        status.style.color = "black"; // Default color during connection attempt
-    
+        this.emit("connectionStatus", { type: "serial", status: "connecting" });
         try {
             this.serialPort = port;
             await this.serialPort.open({ baudRate: 9600 });
@@ -151,24 +143,20 @@ class ConnectionManager {
             this.serialWriter = this.serialPort.writable?.getWriter();
     
             console.log("[connectSerial] ✅ Serial connection established. Starting read...");
-            status.innerText = "🔄 Connected to serial device, starting data read...";
         
             if (!this.serialReader) {
-                console.error("[connectSerial] ❌ Serial reader not available.");
-                status.innerText = "❌ Serial Connection Failed: No reader available.";
-                status.style.color = "#d9534f"; // Set text to red on error
-                return;
+                throw new Error("Serial reader not available.");
             }
     
             this.readSerial(); // Start reading data
             this.isConnected = true;
-            status.innerText = "✅ Connected via Serial!";
-            status.style.color = "green"; // Set text to green on successful connection
             this.connectionType = "serial"
+            this.emit("connectionStatus", { type: "serial", status: "connected" });
+            this.emit("connected");
         } catch (error) {
             console.error("[connectSerial] ❌ Serial Connection Error:", error);
-            status.innerText = "❌ Serial Connection Failed.";
-            status.style.color = "#d9534f"; // Set text to red on error
+            this.emit("connectionStatus", { type: "serial", status: "failed" });
+
         }
     }
     
@@ -220,7 +208,6 @@ class ConnectionManager {
                     while (messages.length > 1) {
                         let message = messages.shift().trim();
                         console.log("[readSerial] 📥 Full message received:", message);
-                        this.handleData(message);
                         this.emit("dataReceived", message);
                     }
                     receivedData = messages[0] || "";
@@ -234,217 +221,8 @@ class ConnectionManager {
         }
     }
     
-
-    async sendCommandAndWait(command, expectedResponse, timeout = 5000) {
-        if (!this.isConnected) {
-            console.warn("[sendCommandAndWait] ⚠️ Not connected!");
-            return;
-        }
-    
-        if (this.isSendingCommand) {
-            console.warn("[sendCommandAndWait] ⏳ GATT operation in progress. Try again later.");
-            return;
-        }
-    
-        this.isSendingCommand = true;
-        this.awaitingResponse = expectedResponse;
-        this.lastResponse = null;
-    
-        try {
-            let encodedCommand = new TextEncoder().encode(command + "\n");
-            const maxChunkSize = 20; // HM-10 Limit
-    
-            console.log(`[sendCommandAndWait] 📤 Sending command: "${command}" (Total size: ${encodedCommand.length} bytes)`);
-    
-            if (this.bleCharacteristic) {
-                for (let i = 0; i < encodedCommand.length; i += maxChunkSize) {
-                    let chunk = encodedCommand.slice(i, i + maxChunkSize);
-                    console.log(`[sendCommandAndWait] 📤 Sending chunk: ${new TextDecoder().decode(chunk)}`);
-                    await this.bleCharacteristic.writeValue(chunk);
-                    await new Promise(resolve => setTimeout(resolve, 50)); // Short delay to prevent overflow
-                }
-            } else if (this.serialWriter) {
-                await this.serialWriter.write(encodedCommand);
-            }
-    
-            return new Promise((resolve, reject) => {
-                const startTime = Date.now();
-    
-                const checkResponse = () => {
-                    if (Date.now() - startTime > timeout) {
-                        this.awaitingResponse = null;
-                        this.isSendingCommand = false;
-                        reject(new Error(`Timeout waiting for response: ${expectedResponse}`));
-                        return;
-                    }
-    
-                    if (this.lastResponse && (
-                        (typeof expectedResponse === "string" && this.lastResponse.startsWith(expectedResponse)) ||
-                        (expectedResponse instanceof RegExp && expectedResponse.test(this.lastResponse))
-                    )) {
-                        this.awaitingResponse = null;
-                        this.isSendingCommand = false;
-                        resolve();
-                        return;
-                    }
-    
-                    setTimeout(checkResponse, 50);
-                };
-    
-                checkResponse();
-            });
-        } catch (error) {
-            console.error("[sendCommandAndWait] ❌ Error:", error);
-        } finally {
-            this.isSendingCommand = false;
-        }
-    }
-    
-
-    handleData(message) {
-        if (!message || message.trim().length === 0) {
-            console.warn("[parseDebugLine] Ignoring empty or whitespace-only line");
-            return null; // Ignore empty lines, including lines with only \n
-        }
-        // Ensure message is a trimmed string
-        message = message.trim();
-        console.log("[handleData] 📥 Received:", message);
-    
-        // Save the latest message for any waiting logic
-        this.lastResponse = message;
-    
-        // --- Mode Handling ---
-        if (message.startsWith("MODE:")) {
-            this.buggyState.mode = message.split(":")[1].trim();
-            this.isReadingParams = false; // Stop reading parameters
-            if (this.awaitingResponse === "MODE") {
-                this.awaitingResponse = null;
-            }
-        } 
-        // --- Parameter Handling ---
-        else if (message.startsWith("PARAMETERS:")) {
-            this.isReadingParams = true;
-            this.tempParams = {}; // Reset temporary storage
-        } 
-        else if (message.startsWith("PARAMETERS_DONE")) {
-            this.isReadingParams = false;
-            this.buggyState.parameters = { ...this.tempParams };
-            console.log("✅ Parameters received and saved:", this.buggyState.parameters);
-            if (this.awaitingResponse === "PARAMETERS") {
-                this.awaitingResponse = null;
-            }
-        } 
-        else if (this.isReadingParams) {
-            // Handle parameter lines: they might contain multiple key-value pairs separated by commas
-            const pairs = message.split(",");
-            pairs.forEach(pair => {
-                const match = pair.trim().match(/(\S+)\s*=\s*(\d+(\.\d+)?)/);
-                if (match) {
-                    this.tempParams[match[1].trim()] = parseFloat(match[2]);
-                }
-            });
-        } 
-        // --- Update Confirmation Handling ---
-        else if (message.startsWith("Updated:")) {
-            const match = message.match(/Updated:\s*(\S+)\s*=\s*([\d.]+)/);
-            if (match) {
-                const key = match[1].trim();
-                const value = match[2].trim();
-                console.log(`✅ Update confirmed: ${key} = ${value}`);
-                if (this.awaitingResponse === `Updated: ${key} = ${value}`) {
-                    this.awaitingResponse = null;
-                }
-            }
-        } 
-        // --- Debug Data Handling ---
-        else if (message === "MOVEMENT FINISHED") {
-            console.log("✅ Movement finished!");
-            this.isMovementFinished = true;
-        } 
-        else if (message === "DEBUG DATA:") {
-            console.log("📡 Debug data started, awaiting more lines...");
-            this.awaitingDebugData = true;
-            this.accumulatedDebugData = []; // Reset previous debug data
-        } 
-        else if (message === "DEBUG_END") {
-            console.log("🚀 DEBUG_END received, processing debug data:", this.accumulatedDebugData);
-            this.awaitingDebugData = false;
-            // Now update the debug UI with the collected data
-            // Dispatch event for `updateDebugTable`
-            document.dispatchEvent(new CustomEvent("updateDebugTable", { detail: this.accumulatedDebugData }));
-            
-            // Dispatch event for `fetchState`
-            document.dispatchEvent(new Event("fetchState"));
-        } 
-        else if (this.awaitingDebugData) {
-            if (!message.trim()) {
-                console.warn("⚠️ Ignoring blank debug message");
-                return;
-            }
-        
-            const debugLine = this.parseDebugLine(message);
-            
-            if (debugLine && Object.keys(debugLine).length > 0) { 
-                console.log("➕ Adding debug data:", debugLine);
-                this.accumulatedDebugData.push(debugLine);
-            } else {
-                console.warn("⚠️ Ignoring empty debug line");
-            }
-        }
-        // --- Sensor Data Handling ---
-        else if (message.startsWith("SENSOR DATA:")) {
-            console.log("📡 Sensor data detected, updating UI...");
-
-            // Extract sensor data
-            const parts = message.replace("SENSOR DATA:", "").trim().split(/\s*\|\s*ERROR:\s*/);
-            const sensorValuesPart = parts[0].trim().split(" "); // Left side of "| ERROR:"
-            const errorValue = parseFloat(parts[1]); // Right side of "| ERROR:"
-
-            // Extract timestamp
-            const timeElapsed = sensorValuesPart.shift(); // First value is the timestamp
-            const sensorValues = sensorValuesPart.map(val => parseFloat(val)); // Convert sensor values;
-
-            // Create a sensor data object
-            const sensorData = {
-                time: timeElapsed,
-                sensors: sensorValues,
-                error: parseFloat(errorValue)
-            };
-
-            // Dispatch event for UI update
-            document.dispatchEvent(new CustomEvent("updateSensorTable", { detail: sensorData }));
-        } 
-        else {
-            console.log("ℹ️ Unhandled message:", message);
-        }
-    }
-    
-    parseDebugLine(line) {
-    
-        const debugObj = {};
-        const [timePart, keyValuesPart] = line.split(":");
-    
-        if (timePart) {
-            debugObj.time = timePart.trim();
-        }
-    
-        if (keyValuesPart) {
-            const pairs = keyValuesPart.split(",").map(pair => pair.trim());
-            pairs.forEach(pair => {
-                const [key, value] = pair.split("=");
-                if (key && value) {
-                    debugObj[key.trim()] = value.trim();
-                }
-            });
-        }
-    
-        return debugObj;
-    }
-
     async disconnect() {
-        console.log("[disconnect] Begin Disconnect");
-        const status = document.getElementById("connection-status");
-        
+        console.log("[disconnect] Begin Disconnect");        
         console.log(`[disconnect] Current Connection Type: ${this.connectionType}`);
     
         try {
@@ -523,18 +301,15 @@ class ConnectionManager {
             // Reset state and update UI status
             this.isConnected = false;
             this.connectionType = null;
-            status.innerText = "Not Connected";
-            status.style.color = "#d9534f"; 
+            this.emit("connectionStatus", { type: "disconnect", status: "finished" });
             console.log("[disconnect] UI updated to Not Connected.");
     
         } catch (error) {
             console.error("[disconnect] ❌ Error disconnecting:", error);
-            status.innerText = "⚠️ Disconnect Error";
-            status.style.color = "#d9534f"; 
+            this.emit("connectionStatus", { type: "disconnect", status: "failed" });
+
         }
     }
-    
-
 }
 
 export default ConnectionManager;

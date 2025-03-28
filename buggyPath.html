@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buggy Path</title>
+    <style>
+        canvas { border: 1px solid black; }
+    </style>
+</head>
+<body>
+    <canvas id="buggyTrack" width="600" height="400"></canvas>
+    <br>
+    <button id="playButton">▶ Play</button>
+    <input type="range" id="timeSlider" min="0" max="0" step="1" value="0">
+    <label for="speedControl">Speed:</label>
+    <input type="range" id="speedControl" min="0.2" max="3" step="0.1" value="1">
+    <span id="speedValue">1x</span>
+    <script type="module" src="buggyPath.js"></script>
