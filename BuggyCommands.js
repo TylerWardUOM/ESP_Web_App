@@ -1,6 +1,7 @@
 import {device} from './Device.js';
 import { startSensorDebug,stopSensorDebug } from './sensorDebug.js';
 import { fetchState } from './BuggyState.js';
+import { startMotorDebug, stopMotorDebug } from './motorDebug.js';
 
 export async function updateParameters() {
     console.log("Checking for parameter updates");
@@ -95,6 +96,12 @@ export async function changeMode() {
             stopSensorDebug();
         }
 
+        if (selectedMode === "MOTOR_DEBUG") {
+            startMotorDebug();
+        }else {
+            stopMotorDebug();
+        }
+
     } catch (error) {
         console.error("❌ Error changing mode:", error);
         alert("Failed to change mode");
@@ -102,4 +109,15 @@ export async function changeMode() {
     }
 
     fetchState();
+}
+
+export async function updateSpeedCommand(wheel, speed) {
+    console.log(`Updating ${wheel} speed to: ${speed}`);
+    
+    // Send command and wait for response
+    await device.sendCommandAndWait(
+        `SET_SPEED:${wheel}=${speed}`,
+        new RegExp(`^Desired`), 
+        5000
+    );
 }

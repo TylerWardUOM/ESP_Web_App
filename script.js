@@ -4,6 +4,7 @@ import { changeMode, updateParameters, startBuggy} from './BuggyCommands.js';
 import { updateDebugTable,downloadDebugCSV, generateTrack } from './buggyDebug.js';
 import { updateWeights, updateSensorTable } from './sensorDebug.js';
 import { fetchState } from './BuggyState.js';
+import { updateMotorTable, updateSpeeds} from './motorDebug.js';
 // Fetch state on page load
 window.onload = async function () {
     console.log("Page loaded");
@@ -36,8 +37,11 @@ document.addEventListener("DOMContentLoaded", () => {
     // Start buggy button
     document.querySelector("#Start-button").addEventListener("click", startBuggy);
 
+    //Update Sensor Weights
     document.querySelector("#updateWeightsButton").addEventListener("click", updateWeights);
 
+    //Update Motor Speeds for Debug
+    document.querySelector("#updateSpeedsButton").addEventListener("click", updateSpeeds);
 
     console.log("✅ Event listeners initialized after DOM load.");
 });
@@ -49,6 +53,11 @@ document.addEventListener("updateDebugTable", (event) => {
 document.addEventListener("updateSensorTable", (event) => {
     const data = event.detail;
     updateSensorTable(data);
+});
+
+document.addEventListener("updateMotorTable", (event) => {
+    const data = event.detail;
+    updateMotorTable(data);
 });
 
 // Listen for state fetch request

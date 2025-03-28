@@ -142,7 +142,10 @@ class DataHandler {
         // --- Sensor Data Handling ---
         else if (message.startsWith("SENSOR DATA:")) {
             this.processSensorData(message);
-        } 
+        }
+        else if (message.startsWith("MOTOR DATA:")) {
+            this.processMotorData(message);
+        }
         else {
             console.log("ℹ️ Unhandled message:", message);
         }
@@ -199,6 +202,32 @@ class DataHandler {
         const sensorData = { time: timeElapsed, sensors: sensorValues, error: errorValue };
         document.dispatchEvent(new CustomEvent("updateSensorTable", { detail: sensorData }));
     }
+
+    processMotorData(message) {
+        console.log("📡 Processing motor data...");
+        // Remove "MOTOR DATA:" prefix
+        const data = message.replace("MOTOR DATA:", "").trim();
+        // Split the data by "|"
+        const parts = data.split("|").map(part => part.trim());
+        if (parts.length < 3) {
+            console.error("Invalid motor data format:", message);
+            return;
+        }
+        // Extract time and motor speeds
+        const timeElapsed = parseInt(parts[0]); // Convert timestamp to integer
+        const leftSpeed = parseFloat(parts[1].replace("Left Speed:", "").trim()); // Extract left speed
+        const rightSpeed = parseFloat(parts[2].replace("Right Speed:", "").trim()); // Extract right speed
+        // Create object with parsed values
+        const motorData = {
+            time: timeElapsed,
+            leftSpeed: leftSpeed,
+            rightSpeed: rightSpeed
+        };
+        console.log("🚀 Parsed Motor Data:", motorData);
+        // Dispatch event with parsed motor data
+        document.dispatchEvent(new CustomEvent("updateMotorTable", { detail: motorData }));
+    }
+    
 
     parseDebugLine(line) {
         const debugObj = {};
