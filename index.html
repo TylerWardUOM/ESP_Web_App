@@ -53,6 +53,7 @@
         <label for="modeSelect">Change Mode:</label>
         <select id="modeSelect">
             <option value="IDLE">Idle Mode</option>
+            <option value="SENSOR_CALLIBRATION">Sensor Callibration</option>
             <option value="SPEED_CONTROL">Speed Control Mode</option>
             <option value="SQUARE_IDLE">Square Idle Mode</option>
             <option value="STRAIGHT_LINE">Line Menu Mode</option>
@@ -71,6 +72,8 @@
 
         <h3>Control Buggy</h3>
         <button id="Start-button">GO</button>
+        <button id="Turn-Around-button">TURN AROUND</button>
+        <button id="Stop-button">STOP</button>
     </div>
 
     <div id="debugData">
@@ -132,8 +135,8 @@
     <div id="motorDebugContainer" style="display: none; text-align: center;">
         <h3>Adjust Motor Speeds</h3>
         <div id="speedControls" class="centered-container">
-            <label>S1: <input type="number" class="speed-input" value="0" step="25"></label>
-            <label>S2: <input type="number" class="speed-input" value="0" step="25"></label>
+            <label>Left Wheel: <input type="number" class="speed-input" value="0" step="25"></label>
+            <label>Right Wheel: <input type="number" class="speed-input" value="0" step="25"></label>
             <button id="updateSpeedsButton">Update Speeds</button>
         </div>
         <h3>Motor Data</h3>

@@ -121,3 +121,20 @@ export async function updateSpeedCommand(wheel, speed) {
         5000
     );
 }
+
+export async function turnAroundCommand() {
+    console.log(`Sending Turn Around Command`);
+    
+    // Send command and wait for response
+    await device.sendCommandAndWait(
+        `TURN_AROUND`,
+        new RegExp(`^TURNING_AROUND`), 
+        5000
+    );
+}
+
+export async function stopCommand() {
+    console.log("Sending Stop Command");
+    await device.sendCommandAndWait(`SET_MODE:IDLE`, new RegExp(`MODE_CHANGED:IDLE`), 5000);
+    fetchState();
+}

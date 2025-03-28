@@ -64,21 +64,7 @@ export async function updateSpeeds() {
     const speedInputs = document.querySelectorAll(".speed-input"); 
     const leftSpeed = parseInt(speedInputs[0].value);
     const rightSpeed = parseInt(speedInputs[1].value);
+    await updateSpeedCommand("left", leftSpeed);
 
-    // Store previous values (optional: could use a more persistent state)
-    if (!window.previousSpeeds) {
-        window.previousSpeeds = { left: 0, right: 0 };
-    }
-
-    // Check if left speed has changed
-    if (leftSpeed !== window.previousSpeeds.left) {
-        await updateSpeedCommand("left", leftSpeed);
-        window.previousSpeeds.left = leftSpeed;
-    }
-
-    // Check if right speed has changed
-    if (rightSpeed !== window.previousSpeeds.right) {
-        await updateSpeedCommand("right", rightSpeed);
-        window.previousSpeeds.right = rightSpeed;
-    }
+    await updateSpeedCommand("right", rightSpeed);
 }

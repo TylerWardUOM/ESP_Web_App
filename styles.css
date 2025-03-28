@@ -29,6 +29,15 @@ button:hover {
     background-color: #0056b3;
 }
 
+/* Stop Button Specific Styles */
+#Stop-button {
+    background-color: #dc3545; /* Red */
+}
+
+#Stop-button:hover {
+    background-color: #b22222; /* Darker red */
+}
+
 /* Select Dropdown */
 select {
     padding: 8px;
