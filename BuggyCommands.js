@@ -138,3 +138,9 @@ export async function stopCommand() {
     await device.sendCommandAndWait(`SET_MODE:IDLE`, new RegExp(`MODE_CHANGED:IDLE`), 5000);
     fetchState();
 }
+
+export async function callibrateWhiteCommand() {
+    console.log("Sending Callibrate White Command");
+    await device.sendCommandAndWait(`CALLIBRATE_WHITE`, new RegExp(`CALLIBRATING_WHITE`), 5000);
+    fetchState();
+}
