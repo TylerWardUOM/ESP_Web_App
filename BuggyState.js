@@ -1,3 +1,4 @@
+import { callibrateBlackCommand, callibrateWhiteCommand, startBuggy, stopCommand, turnAroundCommand } from "./BuggyCommands.js";
 import { device } from "./Device.js";
 
 export async function fetchState() {
@@ -26,12 +27,14 @@ function updateButtons() {
         // Set new buttons for IDLE mode
         control_buttonsDIV.innerHTML = `
             <button id="Calibrate-White-button">CALIBRATE WHITE</button>
+            <button id="Calibrate-Black-button">CALIBRATE BLACK</button>
             <button id="Turn-Around-button">TURN AROUND</button>
             <button id="Stop-button">STOP</button>
         `;
 
         // Add event listeners for IDLE mode buttons
-        document.querySelector("#Calibrate-White-button").addEventListener("click", calibrateWhite);
+        document.querySelector("#Calibrate-White-button").addEventListener("click", callibrateWhiteCommand);
+        document.querySelector("#Calibrate-Black-button").addEventListener("click", callibrateBlackCommand);
         document.querySelector("#Turn-Around-button").addEventListener("click", turnAroundCommand);
         document.querySelector("#Stop-button").addEventListener("click", stopCommand);
     } else {

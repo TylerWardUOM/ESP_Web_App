@@ -141,3 +141,9 @@ export async function callibrateWhiteCommand() {
     await device.sendCommandAndWait(`CALLIBRATE_WHITE`, new RegExp(`CALLIBRATING_WHITE`), 5000);
     document.dispatchEvent(new Event("fetchState"));
 }
+
+export async function callibrateBlackCommand() {
+    console.log("Sending Callibrate White Command");
+    await device.sendCommandAndWait(`CALLIBRATE_BLACK`, new RegExp(`CALLIBRATING_BLACK`), 5000);
+    document.dispatchEvent(new Event("fetchState"));
+}
