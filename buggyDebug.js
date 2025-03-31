@@ -17,6 +17,7 @@ export function updateDebugTable(accumulatedDebugData) {
     }
 
     // Update mode info
+    document.getElementById("lastRunData").style.display="block"
     modeUsed.innerText = device.lastRunMode || "Unknown";
 
     // Format parameters as key-value pairs without quotes
@@ -28,11 +29,13 @@ export function updateDebugTable(accumulatedDebugData) {
     parametersUsed.innerText = formattedParams || "N/A";
 
     if (!accumulatedDebugData || accumulatedDebugData.length === 0) {
+        document.getElementById("debugData").style.display="none";
         console.warn("⚠️ No debug data available.");
         table.innerHTML = "<tr><th>No Data</th></tr>";
         return;
     }
 
+    document.getElementById("debugData").style.display="block";
     // Extract all unique keys from debug data
     const allKeys = new Set();
     accumulatedDebugData.forEach(data => Object.keys(data).forEach(key => allKeys.add(key)));

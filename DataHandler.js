@@ -11,6 +11,8 @@ class DataHandler {
         this.isMovementFinished = false;
         this.bleCharacteristic = bleCharacteristic;
         this.serialWriter = serialWriter;
+        this.lastRunMode = null; 
+        this.lastRunParameters = {};
     }
 
     setBLE(bleCharacteristic) {
