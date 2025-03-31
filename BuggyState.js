@@ -10,7 +10,9 @@ export async function fetchState() {
         try {
             await device.sendCommandAndWait("STATE", "MODE:", 9000);
             await device.sendCommandAndWait("PARAMETER", "PARAMETERS_DONE", 9000);
-            updateUI();
+            // Store the current parameters state for change detection
+            device.initialParameters = { ...parameters };
+            updateUI(device.buggyState.mode,device.buggyState.parameters);
         } catch (error) {
             console.error("❌ Error fetching state:", error);
             alert("Failed to fetch state: " + error.message);  // Show error to user

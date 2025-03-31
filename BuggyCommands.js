@@ -130,7 +130,7 @@ export async function turnAroundCommand() {
 
 export async function stopCommand() {
     console.log("Sending Stop Command");
-    await device.sendCommandAndWait(`SET_MODE:IDLE`, new RegExp(`MODE_CHANGED:IDLE`), 5000);
+    changeMode("IDLE");
     document.dispatchEvent(new Event("fetchState"));
 }
 

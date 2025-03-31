@@ -1,11 +1,10 @@
 import { callibrateBlackCommand, callibrateWhiteCommand, startBuggy, stopCommand, turnAroundCommand } from "./BuggyCommands.js";
-import { device } from "./Device.js";
 
 // Function to update buttons based on buggy state
-function updateButtons() {
+function updateButtons(_mode) {
     const control_buttonsDIV = document.getElementById("control_buttons");
     // Check if buggy is IDLE
-    if (device.buggyState.mode === "IDLE") {
+    if (_mode === "IDLE") {
         // Set new buttons for IDLE mode
         control_buttonsDIV.innerHTML = `
             <button id="Calibrate-White-button">CALIBRATE WHITE</button>
@@ -37,7 +36,7 @@ function updateButtons() {
     }
 }
 
-function updateParameters(){
+function updateParameters(parameters){
     // Get the parameters div
     const paramDiv = document.getElementById("parameter_list");
     if (!paramDiv) {
@@ -49,18 +48,16 @@ function updateParameters(){
     paramDiv.innerHTML = "";
 
     // Ensure parameters exist before updating UI
-    if (!device.buggyState.parameters || Object.keys(device.buggyState.parameters).length === 0) {
+    if (!parameters || Object.keys(parameters).length === 0) {
         console.warn("⚠️ No parameters to display.");
         return;
     }
 
-    console.log("Parameters received:", device.buggyState.parameters);
+    console.log("Parameters received:", parameters);
 
-    // Store the current parameters state for change detection
-    device.initialParameters = { ...device.buggyState.parameters };
 
     // Add input fields for each parameter
-    Object.entries(device.buggyState.parameters).forEach(([key, value]) => {
+    Object.entries(parameters).forEach(([key, value]) => {
         console.log(`Adding parameter: ${key} = ${value}`);
 
         const paramRow = document.createElement("div");
@@ -86,16 +83,18 @@ function updateParameters(){
         paramDiv.appendChild(paramRow);
     });
 }
-export function updateUI() {
-    console.log("Updating UI with state:", device.buggyState);
+export function updateUI(_mode,parameters) {
+    console.log("Updating UI with state:", {_mode,parameters});
 
     // Update mode
-    document.getElementById("mode").innerText = device.buggyState.mode;
+    document.getElementById("mode").innerText = _mode;
     //update mode specific Controls
-    updateButtons();
+    updateButtons(_mode);
 
-    if (device.buggyState.mode!="IDLE"){
+    if (_mode!="IDLE"){
         document.getElementById("parameters").style.display = "block";
-        updateParameters();
+        updateParameters(parameters);
+    }else{
+        document.getElementById("parameters").style.display = "none";
     }
 }
