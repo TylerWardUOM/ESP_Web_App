@@ -2,21 +2,49 @@ import { device } from "./Device.js";
 
 export async function fetchState() {
     console.log("Fetching state and parameters");
-
-    await device.sendCommandAndWait("STATE", "MODE:", 9000);
-    await device.sendCommandAndWait("PARAMETER", "PARAMETERS_DONE", 9000);
-
-    updateUI();
+    //check if device isConnected
+    if (device.isConnected){
+        document.getElementById("controls").style.display ="block";
+        await device.sendCommandAndWait("STATE", "MODE:", 9000);
+        updateUI();
+    }
 }
 
-function updateUI() {
-    console.log("Updating UI with state:", device.buggyState);
 
-    // Update mode
-    document.getElementById("mode").innerText = device.buggyState.mode;
+// Function to update buttons based on buggy state
+function updateButtons() {
+    const control_buttonsDIV = document.getElementById("control_buttons");
+    // Check if buggy is IDLE
+    if (device.buggyState.mode === "IDLE") {
+        // Set new buttons for IDLE mode
+        control_buttonsDIV.innerHTML = `
+            <button id="Calibrate-White-button">CALIBRATE WHITE</button>
+            <button id="Turn-Around-button">TURN AROUND</button>
+            <button id="Stop-button">STOP</button>
+        `;
 
+        // Add event listeners for IDLE mode buttons
+        document.querySelector("#Calibrate-White-button").addEventListener("click", calibrateWhite);
+        document.querySelector("#Turn-Around-button").addEventListener("click", turnAroundCommand);
+        document.querySelector("#Stop-button").addEventListener("click", stopCommand);
+    } else {
+        // Set original buttons for normal mode
+        control_buttonsDIV.innerHTML = `
+            <button id="Start-button">GO</button>
+            <button id="Turn-Around-button">TURN AROUND</button>
+            <button id="Stop-button">STOP</button>
+        `;
+
+        // Add event listeners for normal mode buttons
+        document.querySelector("#Start-button").addEventListener("click", startBuggy);
+        document.querySelector("#Turn-Around-button").addEventListener("click", turnAroundCommand);
+        document.querySelector("#Stop-button").addEventListener("click", stopCommand);
+    }
+}
+
+function updateParameters(){
     // Get the parameters div
-    const paramDiv = document.getElementById("parameters");
+    const paramDiv = document.getElementById("parameter_list");
     if (!paramDiv) {
         console.error("❌ ERROR: Parameters div not found!");
         return;
@@ -62,4 +90,17 @@ function updateUI() {
         paramRow.appendChild(input);
         paramDiv.appendChild(paramRow);
     });
+}
+function updateUI() {
+    console.log("Updating UI with state:", device.buggyState);
+
+    // Update mode
+    document.getElementById("mode").innerText = device.buggyState.mode;
+    //update mode specific Controls
+    updateButtons();
+
+    if (device.buggyState.mode!="IDLE"){
+        document.getElementById("parameters").style.display = "block";
+        updateParameters();
+    }
 }

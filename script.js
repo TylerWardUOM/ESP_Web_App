@@ -34,15 +34,6 @@ document.addEventListener("DOMContentLoaded", () => {
     // Button to update parameters
     document.querySelector("#UpdateParameters").addEventListener("click", updateParameters);
 
-    // Start buggy button
-    document.querySelector("#Start-button").addEventListener("click", startBuggy);
-
-    // Turn Around Button
-    document.querySelector("#Turn-Around-button").addEventListener("click", turnAroundCommand);
-
-    // Stop Button
-    document.querySelector("#Stop-button").addEventListener("click", stopCommand);
-
     //Update Sensor Weights
     document.querySelector("#updateWeightsButton").addEventListener("click", updateWeights);
 

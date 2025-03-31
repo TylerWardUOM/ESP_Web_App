@@ -48,7 +48,7 @@
         <button id="device-selection-modal-close-button">Close</button>
     </div>
 
-    <div id="controls">
+    <div id="controls" style="display: none;">
         <h2>Current Mode: <span id="mode">Not Connected</span></h2>
         <label for="modeSelect">Change Mode:</label>
         <select id="modeSelect">
@@ -66,31 +66,17 @@
         </select>
         <button id="modeSelect-button">Set Mode</button>
 
-        <h3>Update Parameters</h3>
-        <div id="parameters"></div>
-        <button id="UpdateParameters">Update Parameters</button>
-
-        <h3>Control Buggy</h3>
-        <button id="Start-button">GO</button>
-        <button id="Turn-Around-button">TURN AROUND</button>
-        <button id="Stop-button">STOP</button>
-    </div>
-
-    <div id="debugData">
-        <h3>Debug Data</h3>
-        <button id="downloadDebugBtn">Download Debug Data</button>
-        <button id="buggyPath">Plot Buggy Path</button>
-        <div id="debugInfo">
-            <p><strong>Mode Used:</strong> <span id="modeUsed">Unknown</span></p>
-            <p><strong>Parameters Used:</strong> <span id="parametersUsed">N/A</span></p>
+        <div id="parameters" style="display: none">
+            <h3>Update Parameters</h3>
+            <div id="parameter_list"></div>
+            <button id="UpdateParameters">Update Parameters</button>
         </div>
         
+        <h3>Control Buggy</h3>
+        <div id="control_buttons">
+            <!-- Added by State Script -->
+        </div>
     </div>
-
-    <table id="debugTable">
-        <thead></thead>
-        <tbody></tbody>
-    </table>
 
     <div id="sensorDataContainer" style="display: none; text-align: center;">
         <div>
@@ -151,6 +137,21 @@
         </table>
     </div>
 
+    <div id="debugData">
+        <h3>Debug Data</h3>
+        <button id="downloadDebugBtn">Download Debug Data</button>
+        <button id="buggyPath">Plot Buggy Path</button>
+        <div id="debugInfo">
+            <p><strong>Mode Used:</strong> <span id="modeUsed">Unknown</span></p>
+            <p><strong>Parameters Used:</strong> <span id="parametersUsed">N/A</span></p>
+        </div>
+        
+    </div>
+
+    <table id="debugTable">
+        <thead></thead>
+        <tbody></tbody>
+    </table>
 
     <script type="module" src="script.js"></script>
 </body>
