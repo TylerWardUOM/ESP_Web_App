@@ -65,6 +65,5 @@ export async function updateSpeeds() {
     const leftSpeed = parseInt(speedInputs[0].value);
     const rightSpeed = parseInt(speedInputs[1].value);
     await updateSpeedCommand("left", leftSpeed);
-
     await updateSpeedCommand("right", rightSpeed);
 }

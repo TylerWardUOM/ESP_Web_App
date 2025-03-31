@@ -4,7 +4,7 @@ import Connection_Status_UIHandler from "./StatusUiHandler.js"
 const connection_status_uiHandler = new Connection_Status_UIHandler();
 // Subscribe to events
 device.connectionManager.on("connectionStatus", (status) => {
-    connection_status_uiHandlerr.updateConnectionStatus(status.type, status.status);
+    connection_status_uiHandler.updateConnectionStatus(status.type, status.status);
 });
 
 
