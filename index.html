@@ -50,6 +50,12 @@
 
     <div id="controls" style="display: none;">
         <!-- Current Mode and Parameters Handled by controlPannel.js -->
+        <div id="batteryInfo" class="centered-container">
+            <span id="batteryVoltage">Voltage: --</span> 
+            <span id="batteryCurrent">Current: --</span> 
+            <span id="batteryPercentage">Charge: --</span>
+            <button id="refreshBattery" class="refresh-btn">🔄</button>
+        </div>         
         <h2>Current Mode: <span id="mode">Not Connected</span></h2>
         <label for="modeSelect">Change Mode:</label>
         <select id="modeSelect">

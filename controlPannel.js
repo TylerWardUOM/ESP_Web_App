@@ -96,5 +96,22 @@ export function updateUI(_mode,parameters) {
         updateParameters(parameters);
     }else{
         document.getElementById("parameters").style.display = "none";
+        document.dispatchEvent(new Event("fetchBattery"));
+    }
+}
+
+export function updateBatteryDisplay(batteryState) {
+    console.log("🔋 Battery Info Updated:", batteryState);
+
+    // Update UI elements (assuming you have elements with these IDs)
+    document.getElementById("batteryVoltage").innerText = `Voltage: ${batteryState.voltage.toFixed(2)}V`;
+    document.getElementById("batteryCurrent").innerText = `Current: ${batteryState.current.toFixed(3)}A`;
+    document.getElementById("batteryPercentage").innerText = `Charge: ${batteryState.batteryPercentage.toFixed(2)}%`;
+
+    // Optional: Change UI color if battery is low
+    if (batteryState.batteryPercentage < 20) {
+        document.getElementById("batteryPercentage").style.color = "red";
+    } else {
+        document.getElementById("batteryPercentage").style.color = "green";
     }
 }

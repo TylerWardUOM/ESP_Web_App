@@ -13,6 +13,7 @@ class DataHandler {
         this.serialWriter = serialWriter;
         this.lastRunMode = null; 
         this.lastRunParameters = {};
+        this.batteryState = {voltage: 0, current: 0, percentage: 0};
     }
 
     setBLE(bleCharacteristic) {
@@ -185,6 +186,8 @@ class DataHandler {
         }
         else if (message.startsWith("MOTOR DATA:")) {
             this.processMotorData(message);
+        } else if (message.startsWith("BATTERY:")) {
+            this.processBatteryData(message);
         }
         else {
             console.log("ℹ️ Unhandled message:", message);
@@ -266,6 +269,32 @@ class DataHandler {
         console.log("🚀 Parsed Motor Data:", motorData);
         // Dispatch event with parsed motor data
         document.dispatchEvent(new CustomEvent("updateMotorTable", { detail: motorData }));
+    }
+    
+    processBatteryData(message) {
+        console.log("🔋 Processing battery data...");
+    
+        // Extract values from the formatted string
+        const match = message.match(/BATTERY: Voltage: ([\d.]+), Current: ([\d.]+), Battery: ([\d.]+)/);
+        
+        if (!match) {
+            console.error("⚠️ Failed to parse battery data:", message);
+            return;
+        }
+    
+        const voltage = parseFloat(match[1]);
+        const current = parseFloat(match[2]);
+        const batteryPercentage = parseFloat(match[3]);
+    
+        // Update battery state object
+        const batteryState = {
+            voltage,
+            current,
+            batteryPercentage
+        };
+    
+        // Dispatch event for updates
+        document.dispatchEvent(new CustomEvent("updateBatteryInfo", { detail: batteryState }));
     }
     
 

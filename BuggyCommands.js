@@ -145,3 +145,8 @@ export async function callibrateBlackCommand() {
     await device.sendCommandAndWait(`CALLIBRATE_BLACK`, new RegExp(`CALLIBRATING_BLACK`), 5000);
     document.dispatchEvent(new Event("fetchState"));
 }
+
+export async function fetchBatteryCommand() {
+    console.log("Sending Battery Command");
+    await device.sendCommandAndWait(`BATTERY`, new RegExp(`^SENDING_BATTERY`), 5000);
+}

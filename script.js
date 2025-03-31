@@ -1,10 +1,11 @@
 import {device} from './Device.js';
 import { handleConnectionButtonClick, closeModal} from './buggyConnection.js';
-import { changeMode, updateParameters} from './BuggyCommands.js';
+import { changeMode, fetchBatteryCommand, updateParameters} from './BuggyCommands.js';
 import { updateDebugTable,downloadDebugCSV, generateTrack } from './buggyDebug.js';
 import { updateWeights, updateSensorTable,startSensorDebug,stopSensorDebug } from './sensorDebug.js';
 import { fetchState } from './BuggyState.js';
 import { updateMotorTable, updateSpeeds,startMotorDebug,stopMotorDebug} from './motorDebug.js';
+import { updateBatteryDisplay } from './controlPannel.js';
 // Fetch state on page load
 window.onload = async function () {
     console.log("Page loaded");
@@ -85,4 +86,17 @@ document.addEventListener("startMotorDebug", () => {
 // Listen for "stopMotorDebug" event
 document.addEventListener("stopMotorDebug", () => {
     stopMotorDebug();
+});
+
+document.addEventListener("updateBatteryInfo", (event) => {
+    updateBatteryDisplay(event.detail);
+});
+
+// Listen for state fetch request
+document.addEventListener("fetchBattery", () => {
+    fetchBatteryCommand();
+});
+
+document.getElementById("refreshBattery").addEventListener("click", () => {
+    fetchBatteryCommand();
 });

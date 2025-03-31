@@ -1,3 +1,4 @@
+import { fetchBatteryCommand } from "./BuggyCommands.js";
 import { device } from "./Device.js";
 import { updateUI } from "./controlPannel.js";
 
