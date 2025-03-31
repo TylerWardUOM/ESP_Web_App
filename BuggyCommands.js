@@ -55,7 +55,6 @@ export async function updateParameters() {
 
 export async function startBuggy() {
     console.log("Starting buggy movement");
-    document.getElementById("mode").innerText = "waiting_for_movement";
 
     // Store the mode and parameters when "GO" is pressed
     device.lastRunMode = device.buggyState.mode;
@@ -73,13 +72,12 @@ export async function startBuggy() {
 }
 
 
-export async function changeMode() {
+export async function changeMode(selectedMode) {
     if (!device.isConnected) {
         alert("Please connect to a device first.");
         return;
     }
 
-    const selectedMode = document.getElementById("modeSelect").value;
     console.log(`Changing mode to: ${selectedMode}`);
 
     try {

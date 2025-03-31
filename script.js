@@ -19,8 +19,13 @@ window.onload = async function () {
 // ✅ Ensure all event listeners are added *after* the DOM is loaded
 document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("connectButton").addEventListener("click", handleConnectionButtonClick);
-    document.getElementById("modeSelect").addEventListener("change", changeMode);
-    document.getElementById("modeSelect-button").addEventListener("click", changeMode);
+    document.getElementById("modeSelect").addEventListener("change", () => {
+        changeMode(document.getElementById("modeSelect").value);
+    });
+    
+    document.getElementById("modeSelect-button").addEventListener("click", () => {
+        changeMode(document.getElementById("modeSelect").value);
+    });    
     document.getElementById("downloadDebugBtn").addEventListener("click", () => {
         downloadDebugCSV(device.accumulatedDebugData);
     });
