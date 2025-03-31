@@ -1,4 +1,4 @@
-class UIHandler {
+class Connection_Status_UIHandler {
     constructor() {
         this.statusElement = document.getElementById("connection-status");
         this.debugElement = document.getElementById("debug-info");
@@ -59,4 +59,4 @@ class UIHandler {
     }
 }
 
-export default UIHandler;
+export default Connection_Status_UIHandler;

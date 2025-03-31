@@ -1,10 +1,10 @@
 import {device} from './Device.js';
 import { handleConnectionButtonClick, closeModal} from './buggyConnection.js';
-import { changeMode, updateParameters, startBuggy, turnAroundCommand, stopCommand} from './BuggyCommands.js';
+import { changeMode, updateParameters} from './BuggyCommands.js';
 import { updateDebugTable,downloadDebugCSV, generateTrack } from './buggyDebug.js';
-import { updateWeights, updateSensorTable } from './sensorDebug.js';
+import { updateWeights, updateSensorTable,startSensorDebug,stopSensorDebug } from './sensorDebug.js';
 import { fetchState } from './BuggyState.js';
-import { updateMotorTable, updateSpeeds} from './motorDebug.js';
+import { updateMotorTable, updateSpeeds,startMotorDebug,stopMotorDebug} from './motorDebug.js';
 // Fetch state on page load
 window.onload = async function () {
     console.log("Page loaded");
@@ -62,3 +62,22 @@ document.addEventListener("fetchState", () => {
     fetchState();
 });
 
+// Listen for "startSensorDebug" event
+document.addEventListener("startSensorDebug", () => {
+    startSensorDebug();
+});
+
+// Listen for "stopSensorDebug" event
+document.addEventListener("stopSensorDebug", () => {
+    stopSensorDebug();
+});
+
+// Listen for "startMotorDebug" event
+document.addEventListener("startMotorDebug", () => {
+    startMotorDebug();
+});
+
+// Listen for "stopMotorDebug" event
+document.addEventListener("stopMotorDebug", () => {
+    stopMotorDebug();
+});

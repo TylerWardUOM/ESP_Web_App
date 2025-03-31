@@ -1,11 +1,10 @@
-import UIHandler from './StatusUiHandler.js';
 import { device } from "./Device.js";
-import { fetchState } from './BuggyState.js';
+import Connection_Status_UIHandler from "./StatusUiHandler.js"
 
-const uiHandler = new UIHandler();
+const connection_status_uiHandler = new Connection_Status_UIHandler();
 // Subscribe to events
 device.connectionManager.on("connectionStatus", (status) => {
-    uiHandler.updateConnectionStatus(status.type, status.status);
+    connection_status_uiHandlerr.updateConnectionStatus(status.type, status.status);
 });
 
 
@@ -42,7 +41,7 @@ function handleConnectionSuccess() {
     if (device.isConnected) {
         closeModal();
         updateConnectionButton();
-        fetchState();
+        document.dispatchEvent(new Event("fetchState"));
     }
 }
 

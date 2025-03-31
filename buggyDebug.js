@@ -1,5 +1,4 @@
 import { device } from "./Device.js";
-import { fetchState } from "./BuggyState.js";
 
 export function updateDebugTable(accumulatedDebugData) {
     const table = document.querySelector("#debugTable");
@@ -52,7 +51,7 @@ export function updateDebugTable(accumulatedDebugData) {
         `<tr>${headers.map(header => `<td>${data[header] || ""}</td>`).join("")}</tr>`
     ).join("");
 
-    fetchState();
+    document.dispatchEvent(new Event("fetchState"));
 }
 
 
