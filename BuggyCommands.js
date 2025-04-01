@@ -1,7 +1,4 @@
 import {device} from './Device.js';
-import { startSensorDebug,stopSensorDebug } from './sensorDebug.js';
-import { fetchState } from './BuggyState.js';
-import { startMotorDebug, stopMotorDebug } from './motorDebug.js';
 
 export async function updateParameters() {
     console.log("Checking for parameter updates");
@@ -52,13 +49,12 @@ export async function updateParameters() {
         input.style.color = "gray"; // Reset color
     });
 
-    fetchState();
+    document.dispatchEvent(new Event("fetchState"));
 }
 
 
 export async function startBuggy() {
     console.log("Starting buggy movement");
-    document.getElementById("mode").innerText = "waiting_for_movement";
 
     // Store the mode and parameters when "GO" is pressed
     device.lastRunMode = device.buggyState.mode;
@@ -76,13 +72,12 @@ export async function startBuggy() {
 }
 
 
-export async function changeMode() {
+export async function changeMode(selectedMode) {
     if (!device.isConnected) {
         alert("Please connect to a device first.");
         return;
     }
 
-    const selectedMode = document.getElementById("modeSelect").value;
     console.log(`Changing mode to: ${selectedMode}`);
 
     try {
@@ -91,15 +86,15 @@ export async function changeMode() {
 
         // If sensor debug mode is selected, start fetching sensor data
         if (selectedMode === "SENSOR_DEBUG") {
-            startSensorDebug();
+            document.dispatchEvent(new Event("startSensorDebug"));
         }else {
-            stopSensorDebug();
+            document.dispatchEvent(new Event("stopSensorDebug"));
         }
 
         if (selectedMode === "MOTOR_DEBUG") {
-            startMotorDebug();
+            document.dispatchEvent(new Event("startMotorDebug"));
         }else {
-            stopMotorDebug();
+            document.dispatchEvent(new Event("stopMotorDebug"));;
         }
 
     } catch (error) {
@@ -108,7 +103,7 @@ export async function changeMode() {
         return;
     }
 
-    fetchState();
+    document.dispatchEvent(new Event("fetchState"));
 }
 
 export async function updateSpeedCommand(wheel, speed) {
@@ -135,6 +130,23 @@ export async function turnAroundCommand() {
 
 export async function stopCommand() {
     console.log("Sending Stop Command");
-    await device.sendCommandAndWait(`SET_MODE:IDLE`, new RegExp(`MODE_CHANGED:IDLE`), 5000);
-    fetchState();
+    changeMode("IDLE");
+    document.dispatchEvent(new Event("fetchState"));
+}
+
+export async function callibrateWhiteCommand() {
+    console.log("Sending Callibrate White Command");
+    await device.sendCommandAndWait(`CALLIBRATE_WHITE`, new RegExp(`CALLIBRATING_WHITE`), 5000);
+    document.dispatchEvent(new Event("fetchState"));
+}
+
+export async function callibrateBlackCommand() {
+    console.log("Sending Callibrate White Command");
+    await device.sendCommandAndWait(`CALLIBRATE_BLACK`, new RegExp(`CALLIBRATING_BLACK`), 5000);
+    document.dispatchEvent(new Event("fetchState"));
+}
+
+export async function fetchBatteryCommand() {
+    console.log("Sending Battery Command");
+    await device.sendCommandAndWait(`BATTERY`, new RegExp(`^SENDING_BATTERY`), 5000);
 }
