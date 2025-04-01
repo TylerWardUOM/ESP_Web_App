@@ -15,9 +15,7 @@ class ConnectionManager {
         this.awaitingDebugData = false;
         this.accumulatedDebugData = [];
         this.tempParams = {};
-        this.buggyState = { mode: "", parameters: {} };
-        this.lastRunMode = null; 
-        this.lastRunParameters = {}; 
+        this.buggyState = { mode: "", parameters: {} }; 
     }
 
     // Add a listener for a specific event

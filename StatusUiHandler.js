@@ -1,4 +1,4 @@
-class UIHandler {
+class Connection_Status_UIHandler {
     constructor() {
         this.statusElement = document.getElementById("connection-status");
         this.debugElement = document.getElementById("debug-info");
@@ -57,28 +57,6 @@ class UIHandler {
         this.statusElement.innerText = text;
         this.statusElement.style.color = color;
     }
-
-    handleBuggyResponse(message) {
-        console.log("Received message from buggy:", message);
-
-        if (message.includes("MOVEMENT FINISHED")) {
-            console.log("Movement finished detected");
-            this.fetchState();
-        } else if (message.startsWith("DEBUG DATA:")) {
-            console.log("Debug data detected, fetching debug data");
-            this.fetchDebugData();
-        }
-    }
-
-    fetchState() {
-        console.log("Fetching buggy state...");
-        this.debugElement.innerText = "Updating state...";
-    }
-
-    fetchDebugData() {
-        console.log("Fetching debug data...");
-        this.debugElement.innerText = "Fetching debug data...";
-    }
 }
 
-export default UIHandler;
+export default Connection_Status_UIHandler;

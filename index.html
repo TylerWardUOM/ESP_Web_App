@@ -48,49 +48,42 @@
         <button id="device-selection-modal-close-button">Close</button>
     </div>
 
-    <div id="controls">
+    <div id="controls" style="display: none;">
+        <!-- Current Mode and Parameters Handled by controlPannel.js -->
+        <div id="batteryInfo" class="centered-container">
+            <span id="batteryVoltage">Voltage: --</span> 
+            <span id="batteryCurrent">Current: --</span> 
+            <span id="batteryPercentage">Charge: --</span>
+            <button id="refreshBattery" class="refresh-btn">🔄</button>
+        </div>         
         <h2>Current Mode: <span id="mode">Not Connected</span></h2>
         <label for="modeSelect">Change Mode:</label>
         <select id="modeSelect">
             <option value="IDLE">Idle Mode</option>
-            <option value="SENSOR_CALLIBRATION">Sensor Callibration</option>
             <option value="SPEED_CONTROL">Speed Control Mode</option>
             <option value="SQUARE_IDLE">Square Idle Mode</option>
             <option value="STRAIGHT_LINE">Line Menu Mode</option>
             <option value="TURN_ANGLE">Turn Menu Mode</option>
             <option value="FOLLOW_LINE">Follow PID Menu Mode</option>
             <option value="BANG_BANG">Bang Bang Menu Mode</option>
+            <option value="BANG_BANG_BOOST_MENU">Bang Bang Boost Menu Mode</option>
             <option value="BANG_BANG_PROPORTIONAL">Bang Bang Proportional Menu Mode</option>
             <option value="SENSOR_DEBUG">Sensor Debug Mode</option>
             <option value="MOTOR_DEBUG">Motor Debug Mode</option>
         </select>
         <button id="modeSelect-button">Set Mode</button>
 
-        <h3>Update Parameters</h3>
-        <div id="parameters"></div>
-        <button id="UpdateParameters">Update Parameters</button>
-
-        <h3>Control Buggy</h3>
-        <button id="Start-button">GO</button>
-        <button id="Turn-Around-button">TURN AROUND</button>
-        <button id="Stop-button">STOP</button>
-    </div>
-
-    <div id="debugData">
-        <h3>Debug Data</h3>
-        <button id="downloadDebugBtn">Download Debug Data</button>
-        <button id="buggyPath">Plot Buggy Path</button>
-        <div id="debugInfo">
-            <p><strong>Mode Used:</strong> <span id="modeUsed">Unknown</span></p>
-            <p><strong>Parameters Used:</strong> <span id="parametersUsed">N/A</span></p>
+        <div id="parameters" style="display: none">
+            <h3>Update Parameters</h3>
+            <div id="parameter_list"></div>
+            <button id="UpdateParameters">Update Parameters</button>
         </div>
         
+        <h3>Control Buggy</h3>
+        <div id="control_buttons">
+            <!-- Added by controlPannel.js Script -->
+        </div>
     </div>
-
-    <table id="debugTable">
-        <thead></thead>
-        <tbody></tbody>
-    </table>
 
     <div id="sensorDataContainer" style="display: none; text-align: center;">
         <div>
@@ -151,6 +144,23 @@
         </table>
     </div>
 
+    <div id="lastRunData" style="display: none;">
+        <h3>Last Run Information:</h3>
+        <div id="runInfo">
+            <p><strong>Mode Used:</strong> <span id="modeUsed">Unknown</span></p>
+            <p><strong>Parameters Used:</strong> <span id="parametersUsed">N/A</span></p>
+        </div>
+    </div>
+        
+    <div id="debugData" style="display: none;">
+        <h3>Debug Data</h3>
+        <button id="downloadDebugBtn">Download Debug Data</button>
+        <button id="buggyPath">Plot Buggy Path</button>
+        <table id="debugTable">
+            <thead></thead>
+            <tbody></tbody>
+        </table>
+    </div>
 
     <script type="module" src="script.js"></script>
 </body>
