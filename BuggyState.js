@@ -16,7 +16,7 @@ export async function fetchState() {
             updateUI(device.buggyState.mode,device.buggyState.parameters);
         } catch (error) {
             console.error("❌ Error fetching state:", error);
-            alert("Failed to fetch state: " + error.message);  // Show error to user
+            //alert("Failed to fetch state: " + error.message);  // Show error to user
         }
     }
 }

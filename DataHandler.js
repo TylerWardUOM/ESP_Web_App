@@ -4,7 +4,14 @@ class DataHandler {
         this.awaitingResponse = null;
         this.lastResponse = null;
         this.awaitingDebugData = false;
-        this.accumulatedDebugData = [];
+        this.debugData = {
+            MOTOR_LEFT: [],
+            MOTOR_RIGHT: [],
+            SENSOR: [],
+            CONTROL: [],
+            SQUARE: []
+        };
+        this.accumulatedDebugData=[];
         this.isReadingParams = false;
         this.tempParams = {};
         this.buggyState = { mode: "", parameters: {} };
@@ -171,8 +178,15 @@ class DataHandler {
         // --- Debug Data Handling ---
         else if (message === "DEBUG DATA:") {
             console.log("📡 Debug data started...");
+            document.dispatchEvent(new Event("debugStart"));
             this.awaitingDebugData = true;
-            this.accumulatedDebugData = [];
+            this.debugData = {
+                MOTOR_LEFT: [],
+                MOTOR_RIGHT: [],
+                SENSOR: [],
+                CONTROL: [],
+                SQUARE: []
+            };
         } 
         else if (message === "DEBUG_END") {
             this.processDebugData();
@@ -215,9 +229,9 @@ class DataHandler {
     }
 
     processDebugData() {
-        console.log("🚀 DEBUG_END received, processing debug data:", this.accumulatedDebugData);
+        console.log("🚀 DEBUG_END received, processing debug data:", this.debugData);
         this.awaitingDebugData = false;
-        document.dispatchEvent(new CustomEvent("updateDebugTable", { detail: this.accumulatedDebugData }));
+        document.dispatchEvent(new CustomEvent("updateDebugTable", { detail: this.debugData }));
         document.dispatchEvent(new Event("fetchState"));
     }
 
@@ -228,24 +242,88 @@ class DataHandler {
         }
 
         const debugLine = this.parseDebugLine(message);
-        if (debugLine && Object.keys(debugLine).length > 0) {
-            this.accumulatedDebugData.push(debugLine);
+        if (debugLine) {
+            console.log(`✅ Processed debug entry for `, debugLine);
         }
     }
 
     parseDebugLine(line) {
-        const debugObj = {};
-        const [timePart, keyValuesPart] = line.split(":");
+        const parts = line.split(" ");
+        if (parts.length < 2) return null; // Invalid format
 
-        if (timePart) debugObj.time = timePart.trim();
-        if (keyValuesPart) {
-            keyValuesPart.split(",").forEach(pair => {
-                const [key, value] = pair.split("=");
-                if (key && value) debugObj[key.trim()] = value.trim();
-            });
+        const timestampPart = parts[0];
+        const typeAndData = parts.slice(1).join(" "); // Join back after timestamp
+        const [type, dataString] = typeAndData.split(":");
+
+        if (!type || !dataString) return null; // Invalid format
+
+        const timestamp = parseInt(timestampPart.replace("T:", ""), 10);
+        const values = dataString.split(",").map(v => parseFloat(v));
+
+        let parsedEntry;
+
+        switch (type.trim()) {
+            case "MOTOR":
+                if (values.length !== 6) return null;
+                parsedEntry = {
+                    timestamp,
+                    side: values[0],
+                    distance: values[1],
+                    speed: values[2],
+                    set_speed: values[3],
+                    error: values[4],
+                    adjustment: values[5]
+                };
+                if (values[0]==0){
+                    this.debugData.MOTOR_LEFT.push(parsedEntry);
+                }else{
+                    this.debugData.MOTOR_RIGHT.push(parsedEntry);
+                }
+                break;
+
+            case "SENSOR":
+                if (values.length !== 7) return null;
+                parsedEntry = {
+                    timestamp,
+                    error: values[0],
+                    sensor_values: values.slice(1, 7)
+                };
+                this.debugData.SENSOR.push(parsedEntry);
+                break;
+
+            case "CONTROL":
+                if (values.length !== 2) return null;
+                parsedEntry = {
+                    timestamp,
+                    pid_output: values[0],
+                    multiplier: values[1]
+                };
+                this.debugData.CONTROL.push(parsedEntry);
+                break;
+
+            case "SQUARE":
+                if (values.length !== 5) return null;
+                parsedEntry = {
+                    timestamp,
+                    left_distance: values[0],
+                    right_distance: values[1],
+                    error: values[2],
+                    pid_output: values[3],
+                    multiplier: values[4]
+                };
+                this.debugData.SQUARE.push(parsedEntry);
+                break;
+
+            default:
+                console.warn("Unknown debug type received:", type);
+                return null;
         }
-        return debugObj;
+
+        console.log(`✅ Parsed ${type} debug entry:`, parsedEntry);
+        return parsedEntry;
     }
+
+
 
     processSensorData(message) {
         console.log("📡 Processing sensor data...");
