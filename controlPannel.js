@@ -36,18 +36,15 @@ function updateButtons(_mode) {
     }
 }
 
-function updateParameters(parameters){
-    // Get the parameters div
+function updateParameters(parameters) {
     const paramDiv = document.getElementById("parameter_list");
     if (!paramDiv) {
         console.error("❌ ERROR: Parameters div not found!");
         return;
     }
 
-    // Clear the parameter list
-    paramDiv.innerHTML = "";
+    paramDiv.innerHTML = ""; // Clear previous entries
 
-    // Ensure parameters exist before updating UI
     if (!parameters || Object.keys(parameters).length === 0) {
         console.warn("⚠️ No parameters to display.");
         return;
@@ -55,34 +52,47 @@ function updateParameters(parameters){
 
     console.log("Parameters received:", parameters);
 
-
-    // Add input fields for each parameter
     Object.entries(parameters).forEach(([key, value]) => {
         console.log(`Adding parameter: ${key} = ${value}`);
 
         const paramRow = document.createElement("div");
-        paramRow.classList.add("parameter-item"); // Add the class for styling
-
-        const input = document.createElement("input");
-        input.type = "text";
-        input.id = `param-${key}`;
-        input.value = value;
-        input.dataset.initial = value; // Store initial value for comparison
-        input.style.color = "gray"; // Start with gray text
-
-        // Change color when the user edits the field
-        input.addEventListener("input", () => {
-            input.style.color = (input.value.trim() === input.dataset.initial) ? "gray" : "black";
-        });
+        paramRow.classList.add("parameter-item");
 
         const label = document.createElement("label");
         label.innerText = `${key}: `;
+
+        let input;
+
+        if (key.toLowerCase().includes("flag")) {
+            input = document.createElement("input");
+            input.type = "checkbox";
+            input.id = `param-${key}`;
+            input.checked = parseFloat(value) === 1.0; // Convert stored value to boolean
+
+            input.addEventListener("change", () => {
+                parameters[key] = input.checked ? 1.0 : 0.0; // ✅ Fix: Correctly update unchecked value to 0.0
+                console.log(`Updated ${key}: ${parameters[key]}`);
+            });
+
+        } else {
+            input = document.createElement("input");
+            input.type = "text";
+            input.id = `param-${key}`;
+            input.value = value;
+            input.dataset.initial = value;
+            input.style.color = "gray";
+
+            input.addEventListener("input", () => {
+                input.style.color = (input.value.trim() === input.dataset.initial) ? "gray" : "black";
+            });
+        }
 
         paramRow.appendChild(label);
         paramRow.appendChild(input);
         paramDiv.appendChild(paramRow);
     });
 }
+
 export function updateUI(_mode,parameters) {
     console.log("Updating UI with state:", {_mode,parameters});
 

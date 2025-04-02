@@ -233,6 +233,20 @@ class DataHandler {
         }
     }
 
+    parseDebugLine(line) {
+        const debugObj = {};
+        const [timePart, keyValuesPart] = line.split(":");
+
+        if (timePart) debugObj.time = timePart.trim();
+        if (keyValuesPart) {
+            keyValuesPart.split(",").forEach(pair => {
+                const [key, value] = pair.split("=");
+                if (key && value) debugObj[key.trim()] = value.trim();
+            });
+        }
+        return debugObj;
+    }
+
     processSensorData(message) {
         console.log("📡 Processing sensor data...");
         const parts = message.replace("SENSOR DATA:", "").trim().split(/\s*\|\s*ERROR:\s*/);
@@ -297,20 +311,6 @@ class DataHandler {
         document.dispatchEvent(new CustomEvent("updateBatteryInfo", { detail: batteryState }));
     }
     
-
-    parseDebugLine(line) {
-        const debugObj = {};
-        const [timePart, keyValuesPart] = line.split(":");
-
-        if (timePart) debugObj.time = timePart.trim();
-        if (keyValuesPart) {
-            keyValuesPart.split(",").forEach(pair => {
-                const [key, value] = pair.split("=");
-                if (key && value) debugObj[key.trim()] = value.trim();
-            });
-        }
-        return debugObj;
-    }
 }
 
 export default DataHandler;
