@@ -267,7 +267,6 @@ class DataHandler {
                 if (values.length !== 6) return null;
                 parsedEntry = {
                     timestamp,
-                    side: values[0],
                     distance: values[1],
                     speed: values[2],
                     set_speed: values[3],

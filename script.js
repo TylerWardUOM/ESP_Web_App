@@ -40,6 +40,8 @@ document.addEventListener("DOMContentLoaded", () => {
     // Button to update parameters
     document.querySelector("#UpdateParameters").addEventListener("click", updateParameters);
 
+    document.addEventListener("updateParameters",updateParameters);
+
     //Update Sensor Weights
     document.querySelector("#updateWeightsButton").addEventListener("click", updateWeights);
 
