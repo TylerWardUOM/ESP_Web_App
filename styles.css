@@ -317,3 +317,29 @@ button#toggleSensorDebugBtn {
     padding: 0px 0px;
     font-size: 18px;
 }
+
+.rc-controls {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+}
+
+.rc-row {
+    display: flex;
+    gap: 5px;
+}
+
+.arrow {
+    width: 50px;
+    height: 50px;
+    font-size: 24px;
+    background-color: #ccc;
+    border: none;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.arrow.active {
+    background-color: #ffcc00; /* Highlight when pressed */
+}
