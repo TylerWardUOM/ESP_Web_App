@@ -28,7 +28,7 @@ document.addEventListener("DOMContentLoaded", () => {
         changeMode(document.getElementById("modeSelect").value);
     });    
     document.getElementById("downloadDebugBtn").addEventListener("click", () => {
-        downloadDebugCSV(device.accumulatedDebugData);
+        downloadDebugCSV(device.debugData);
     });
     document.getElementById("buggyPath").addEventListener("click", () => {
         generateTrack(device.accumulatedDebugData);
@@ -39,6 +39,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Button to update parameters
     document.querySelector("#UpdateParameters").addEventListener("click", updateParameters);
+
+    document.addEventListener("updateParameters",updateParameters);
 
     //Update Sensor Weights
     document.querySelector("#updateWeightsButton").addEventListener("click", updateWeights);
@@ -99,4 +101,8 @@ document.addEventListener("fetchBattery", () => {
 
 document.getElementById("refreshBattery").addEventListener("click", () => {
     fetchBatteryCommand();
+});
+
+document.addEventListener("debugStart", () => {
+    document.getElementById("mode").innerText = "Recieving Debug Data";
 });

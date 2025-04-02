@@ -62,8 +62,8 @@ class Device {
         return this.dataHandler.lastRunParameters;
     }
 
-    get accumulatedDebugData(){
-        return this.dataHandler.accumulatedDebugData;
+    get debugData(){
+        return this.dataHandler.debugData;
     }
 }
 
