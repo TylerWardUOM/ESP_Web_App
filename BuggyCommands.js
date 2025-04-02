@@ -7,14 +7,20 @@ export async function updateParameters() {
 
     paramInputs.forEach(input => {
         const key = input.id.replace("param-", "");
-        const newValue = input.value.trim();
-        const initialValue = input.dataset.initial;
 
-        const parsedValue = isNaN(newValue) ? newValue : parseFloat(newValue);
-        const parsedInitialValue = isNaN(initialValue) ? initialValue : parseFloat(initialValue);
+        let newValue;
+        let initialValue;
 
-        if (parsedValue !== parsedInitialValue) {
-            updates.push({ key, value: parsedValue });
+        if (input.type === "checkbox") {
+            newValue = input.checked ? 1.0 : 0.0; // ✅ Fix: Checkbox should send 1.0 if checked, 0.0 if unchecked
+            initialValue = parseFloat(input.dataset.initial);
+        } else {
+            newValue = isNaN(input.value) ? input.value.trim() : parseFloat(input.value);
+            initialValue = isNaN(input.dataset.initial) ? input.dataset.initial : parseFloat(input.dataset.initial);
+        }
+
+        if (newValue !== initialValue) {
+            updates.push({ key, value: newValue });
         }
     });
 
@@ -43,10 +49,9 @@ export async function updateParameters() {
 
     alert("All parameters updated!");
 
-    // Reset all input colors to gray after update
     paramInputs.forEach(input => {
-        input.dataset.initial = input.value; // Update stored initial value
-        input.style.color = "gray"; // Reset color
+        input.dataset.initial = input.type === "checkbox" ? (input.checked ? "1.0" : "0.0") : input.value;
+        input.style.color = "gray";
     });
 
     document.dispatchEvent(new Event("fetchState"));
