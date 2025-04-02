@@ -31,7 +31,7 @@ document.addEventListener("DOMContentLoaded", () => {
         downloadDebugCSV(device.debugData);
     });
     document.getElementById("buggyPath").addEventListener("click", () => {
-        generateTrack(device.accumulatedDebugData);
+        generateTrack(device.debugData);
     });
     
     // Close modal button

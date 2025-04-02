@@ -8,44 +8,73 @@ let currentIndex = 0;
 let isPlaying = false;
 let playbackSpeed = 1;
 let scale = 100; // Initial scale factor (1m = 100px)
+let zoomFactor = 1; // Zoom factor for scaling
+let canvasOffsetX = 0, canvasOffsetY = 0; // For the panning of the canvas
+let PathzoomFactor = 1; // Zoom factor for scaling
+let PathScale = 400; // Initial scale factor (1m = 100px)
+let panOffsetX = 0, panOffsetY = 0; // Panning offsets (used for dragging the canvas)
+let isDragging = false; // Flag to check if user is dragging
+let lastX = 0, lastY = 0; // Last mouse position for dragging
 
-function computePath(accumulatedDebugData) {
+function computePath(debugData) {
+    console.log("Computing path with:", debugData);
     let x = 0, y = 0, theta = 0;
     pathData = [];
 
-    accumulatedDebugData.forEach((data) => {
-        let leftDist = parseFloat(data.Left_Distance);
-        let rightDist = parseFloat(data.Right_Distance);
+    let leftMotor = debugData.MOTOR_LEFT || [];
+    let rightMotor = debugData.MOTOR_RIGHT || [];
 
-        let d = (leftDist + rightDist) / 2; // Average distance
+    let maxLength = Math.min(leftMotor.length, rightMotor.length);
+
+    for (let i = 1; i < maxLength; i++) {
+        let leftDist = parseFloat(leftMotor[i]?.distance) - parseFloat(leftMotor[i - 1]?.distance) || 0;
+        let rightDist = parseFloat(rightMotor[i]?.distance) - parseFloat(rightMotor[i - 1]?.distance) || 0;
+
+        let leftSpeed = parseFloat(leftMotor[i]?.speed) || 0;
+        let rightSpeed = parseFloat(rightMotor[i]?.speed) || 0;
+        let avgSpeed = (leftSpeed + rightSpeed) / 2; // Compute average speed
+
+        console.log(`Step ${i}: ΔLeft=${leftDist}, ΔRight=${rightDist}, Speed=${avgSpeed}`);
+
+        let d = (leftDist + rightDist) / 2;
         let deltaTheta = (rightDist - leftDist) / trackWidth;
 
         theta += deltaTheta;
         x += d * Math.cos(theta);
         y += d * Math.sin(theta);
 
-        pathData.push({ x, y, theta });
-    });
+        pathData.push({ x, y, theta, speed: avgSpeed });
+    }
 
-    adjustCanvasSize(); // Resize canvas to fit path
+    adjustCanvasZoomAndPan();
     document.getElementById("timeSlider").max = pathData.length - 1;
 }
 
-function adjustCanvasSize() {
+function adjustCanvasZoomAndPan() {
     if (pathData.length === 0) return;
 
-    // Get min/max X and Y values
     let minX = Math.min(...pathData.map(p => p.x));
     let maxX = Math.max(...pathData.map(p => p.x));
     let minY = Math.min(...pathData.map(p => p.y));
     let maxY = Math.max(...pathData.map(p => p.y));
 
-    let width = (maxX - minX) * scale + 100; // Extra padding
-    let height = (maxY - minY) * scale + 100; // Extra padding
+    // Calculate canvas boundaries
+    let contentWidth = (maxX - minX) * scale;
+    let contentHeight = (maxY - minY) * scale;
 
-    let canvas = document.getElementById("buggyTrack");
-    canvas.width = Math.max(width, 500); // Minimum size of 500px
-    canvas.height = Math.max(height, 500);
+    // Zoom out to fit the content
+    zoomFactor = Math.min(canvas.width / contentWidth, canvas.height / contentHeight);
+    scale = zoomFactor * 0.8; // Applying some padding
+
+    // Recalculate offsets for panning
+    canvasOffsetX = (canvas.width - contentWidth * scale) / 2;
+    canvasOffsetY = (canvas.height - contentHeight * scale) / 2;
+
+    // Update panOffsetX and panOffsetY with current panning
+    panOffsetX = canvasOffsetX;
+    panOffsetY = canvasOffsetY;
+
+    drawPath();
 }
 
 function drawPath(highlightIndex = -1) {
@@ -55,54 +84,70 @@ function drawPath(highlightIndex = -1) {
 
     if (pathData.length === 0) return;
 
-    // Find min/max to center the path
+    // Draw the path with current zoom and pan
     let minX = Math.min(...pathData.map(p => p.x));
     let minY = Math.min(...pathData.map(p => p.y));
 
-    let offsetX = -minX * scale + 50; // Centering offset
-    let offsetY = -minY * scale + 50;
+    let offsetX = (canvas.width / 2) - (minX * PathScale) + panOffsetX;
+    let offsetY = (canvas.height / 2) - (minY * PathScale) + panOffsetY;
 
-    // Draw the path
-    ctx.beginPath();
-    pathData.forEach((point, index) => {
-        let px = offsetX + point.x * scale;
-        let py = offsetY - point.y * scale;
-        if (index === 0) ctx.moveTo(px, py);
-        else ctx.lineTo(px, py);
-    });
+    // Compute min/max speed for gradient scaling
+    let speeds = pathData.map(p => p.speed);
+    let minSpeed = Math.min(...speeds);
+    let maxSpeed = Math.max(...speeds);
 
-    ctx.strokeStyle = "blue";
-    ctx.lineWidth = pathWidth * scale; // Path width is 17mm scaled
-    ctx.stroke();
+    ctx.lineWidth = pathWidth * PathScale;
 
-    // Draw the buggy icon at the current position
+    // Draw path with gradient based on speed
+    for (let i = 0; i < pathData.length - 1; i++) {
+        let p1 = pathData[i];
+        let p2 = pathData[i + 1];
+
+        let px1 = offsetX + p1.x * PathScale;
+        let py1 = offsetY - p1.y * PathScale;
+        let px2 = offsetX + p2.x * PathScale;
+        let py2 = offsetY - p2.y * PathScale;
+
+        let speedNormalized = (p1.speed - minSpeed) / (maxSpeed - minSpeed);
+        let color = speedToColor(speedNormalized);
+
+        ctx.strokeStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(px1, py1);
+        ctx.lineTo(px2, py2);
+        ctx.stroke();
+    }
+
+    // Draw buggy
     if (highlightIndex >= 0) {
         let { x, y, theta } = pathData[highlightIndex];
-
-        let px = offsetX + x * scale;
-        let py = offsetY - y * scale;
-
-        drawBuggy(ctx, px, py, theta, scale);
+        let px = offsetX + x * PathScale;
+        let py = offsetY - y * PathScale;
+        drawBuggy(ctx, px, py, theta, PathScale);
     }
 }
 
-function drawBuggy(ctx, x, y, theta, scale) {
-    let buggyLengthScaled = buggyLength * scale;
-    let buggyWidthScaled = buggyWidth * scale;
+function drawBuggy(ctx, x, y, theta, PathScale) {
+    let buggyLengthScaled = buggyLength * PathScale;
+    let buggyWidthScaled = buggyWidth * PathScale;
 
     ctx.save();
     ctx.translate(x, y);
     ctx.rotate(-theta);
 
-    // Draw the buggy body
     ctx.fillStyle = "red";
     ctx.fillRect(-buggyLengthScaled / 2, -buggyWidthScaled / 2, buggyLengthScaled, buggyWidthScaled);
 
-    // Draw front indicator
     ctx.fillStyle = "yellow";
     ctx.fillRect(buggyLengthScaled / 2 - 5, -5, 10, 10);
 
     ctx.restore();
+}
+
+function speedToColor(normSpeed) {
+    let r = Math.floor(255 * normSpeed); // More red as speed increases
+    let g = Math.floor(255 * (1 - normSpeed)); // Less green as speed increases
+    return `rgb(${r},${g},255)`; // Blend of red/blue
 }
 
 function updateSliderAndDraw() {
@@ -139,8 +184,45 @@ document.getElementById("speedControl").addEventListener("input", (event) => {
     document.getElementById("speedValue").innerText = `${playbackSpeed.toFixed(1)}x`;
 });
 
-// Load data from localStorage when page loads
-window.onload = function() {
+// Mouse drag and zoom
+let canvas = document.getElementById("buggyTrack");
+
+// Mouse down event to start dragging
+canvas.addEventListener("mousedown", (e) => {
+    isDragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+    canvas.style.cursor = "grabbing";  // Change cursor to grabbing
+});
+
+// Mouse move event to drag
+canvas.addEventListener("mousemove", (e) => {
+    if (isDragging) {
+        panOffsetX += (e.clientX - lastX);
+        panOffsetY += (e.clientY - lastY);
+        lastX = e.clientX;
+        lastY = e.clientY;
+        console.log(panOffsetX, panOffsetY);
+        drawPath(); // Redraw path after moving
+    }
+});
+
+// Mouse up event to stop dragging
+canvas.addEventListener("mouseup", () => {
+    isDragging = false;
+    canvas.style.cursor = "grab";  // Change cursor back to grab
+});
+
+canvas.addEventListener("wheel", (e) => {
+    e.preventDefault();
+    PathzoomFactor = e.deltaY < 0 ? 1.1 : 0.9;
+    console.log(PathzoomFactor);
+    PathScale *= PathzoomFactor;
+    console.log(PathScale);
+    drawPath();
+});
+
+window.onload = function () {
     const storedData = localStorage.getItem("buggyData");
     if (storedData) {
         const debugData = JSON.parse(storedData);
@@ -150,3 +232,63 @@ window.onload = function() {
         alert("❌ No buggy data found!");
     }
 };
+
+document.getElementById("csvInput").addEventListener("change", handleFileUpload);
+
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+        const csvText = e.target.result;
+        parseCSV(csvText);
+    };
+    reader.readAsText(file);
+}
+
+function parseCSV(csvText) {
+    let lines = csvText.split("\n");
+    let leftMotorData = [], rightMotorData = [];
+    let mode = "", parameters = {};
+    let currentSection = "";
+
+    for (let line of lines) {
+        line = line.trim();
+        if (line.startsWith("---")) {
+            if (line.includes("MOTOR_LEFT")) currentSection = "left";
+            else if (line.includes("MOTOR_RIGHT")) currentSection = "right";
+            else currentSection = "";
+            continue;
+        }
+
+        if (line.startsWith("Mode Used:")) {
+            mode = line.split(":")[1].trim();
+            continue;
+        }
+
+        if (line.startsWith("Parameters Used:")) {
+            try {
+                parameters = JSON.parse(line.split(":")[1].trim());
+            } catch (error) {
+                console.error("Error parsing parameters:", error);
+            }
+            continue;
+        }
+
+        let values = line.split(",");
+        if (values.length >= 3 && currentSection) {
+            let timestamp = parseFloat(values[0].replace(/"/g, ""));
+            let distance = parseFloat(values[1]);
+            let speed = parseFloat(values[2]);
+
+            if (currentSection === "left") {
+                leftMotorData.push({ timestamp, distance, speed });
+            } else if (currentSection === "right") {
+                rightMotorData.push({ timestamp, distance, speed });
+            }
+        }
+    }
+
+    computePath({ MOTOR_LEFT: leftMotorData, MOTOR_RIGHT: rightMotorData });
+}

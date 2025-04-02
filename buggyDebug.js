@@ -183,14 +183,14 @@ export function downloadDebugCSV(debugData) {
 
 // Function to trigger path computation
 export function generateTrack(debugData) {
-    if (!debugData.some(data => data.Left_Distance && data.Right_Distance && data.time)) {
-        alert("🚨 Missing required data (Left_Distance, Right_Distance, Time)");
+    if (!debugData.MOTOR_LEFT?.length || !debugData.MOTOR_RIGHT?.length) {
+        alert("🚨 Missing required data (MOTOR_LEFT or MOTOR_RIGHT distances)");
         return;
     }
+
     // Store data in localStorage for use in the new page
     localStorage.setItem("buggyData", JSON.stringify(debugData));
 
     // Open the new page
     window.open("buggyPath.html", "_blank");
 }
-
