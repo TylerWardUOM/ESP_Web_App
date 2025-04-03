@@ -69,6 +69,7 @@ function updateButtons(_mode) {
         document.querySelector("#Start-button").addEventListener("click", () => {
             startBuggy();
             document.getElementById("mode").innerText = "waiting_for_movement";
+            document.getElementById("parameters").style.display = "none";
         });        
         document.querySelector("#Turn-Around-button").addEventListener("click", turnAroundCommand);
         document.querySelector("#Stop-button").addEventListener("click", stopCommand);
