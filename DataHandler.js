@@ -264,14 +264,17 @@ class DataHandler {
 
         switch (type.trim()) {
             case "MOTOR":
-                if (values.length !== 6) return null;
+                if (values.length !== 9) return null;
                 parsedEntry = {
                     timestamp,
                     distance: values[1],
                     speed: values[2],
-                    set_speed: values[3],
+                    target_speed: values[3],
                     error: values[4],
-                    adjustment: values[5]
+                    adjustment: values[5],
+                    persistent_error: values[6],
+                    newSpeed: values[7],
+                    originalSpeed: values[8]
                 };
                 if (values[0]==0){
                     this.debugData.MOTOR_LEFT.push(parsedEntry);
