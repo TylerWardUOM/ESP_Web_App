@@ -79,9 +79,9 @@ export function updateDebugTable(debugData) {
 
             if (entry) {
                 if (type === "MOTOR_LEFT") {
-                    rowData.push(`<td>Distance=${entry.distance}, Speed=${entry.speed}, Set=${entry.set_speed}, Error=${entry.error}, Adjustment=${entry.adjustment}</td>`);
+                    rowData.push(`<td>Distance=${entry.distance}, Speed=${entry.speed}, Target=${entry.target_speed}, Error=${entry.error}, Adjustment=${entry.adjustment}, Persistent_Error=${entry.persistent_error}, NewSpeed=${entry.newSpeed}, OriginalSpeed=${entry.originalSpeed}</td>`);
                 } else if (type === "MOTOR_RIGHT") {
-                    rowData.push(`<td>Distance=${entry.distance}, Speed=${entry.speed}, Set=${entry.set_speed}, Error=${entry.error}, Adjustment=${entry.adjustment}</td>`);
+                    rowData.push(`<td>Distance=${entry.distance}, Speed=${entry.speed}, Target=${entry.target_speed}, Error=${entry.error}, Adjustment=${entry.adjustment}, Persistent_Error=${entry.persistent_error}, NewSpeed=${entry.newSpeed}, OriginalSpeed=${entry.originalSpeed}</td>`);
                 } else if (type === "SENSOR") {
                     rowData.push(`<td>Error=${entry.error}, Sensors=[${entry.sensor_values.join(", ")}]</td>`);
                 } else if (type === "CONTROL") {

@@ -155,3 +155,13 @@ export async function fetchBatteryCommand() {
     console.log("Sending Battery Command");
     await device.sendCommandAndWait(`BATTERY`, new RegExp(`^SENDING_BATTERY`), 5000);
 }
+
+export async function startDebugMotor() {
+    console.log("Sending debug start Command");
+    await device.sendCommandAndWait(`DEBUG_MOTOR`, new RegExp(`^STARTING_DEBUG`), 5000);
+}
+
+export async function stopDebugMotor() {
+    console.log("Sending debug stop Command");
+    await device.sendCommandAndWait(`DEBUG_MOTOR`, new RegExp(`^STOPPING_DEBUG`), 5000);
+}

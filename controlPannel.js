@@ -1,4 +1,4 @@
-import { callibrateBlackCommand, callibrateWhiteCommand, startBuggy, stopCommand, turnAroundCommand,updateSpeedCommand } from "./BuggyCommands.js";
+import { callibrateBlackCommand, callibrateWhiteCommand, startBuggy, stopCommand, turnAroundCommand,updateSpeedCommand, startDebugMotor,stopDebugMotor } from "./BuggyCommands.js";
 
 // Function to update buttons based on buggy state
 function updateButtons(_mode) {
@@ -57,6 +57,23 @@ function updateButtons(_mode) {
             activeKeys.delete(event.key);
             updateButtonStates();
         });
+    }else if (_mode == "MOTOR_DEBUG") {
+        control_buttonsDIV.innerHTML = `
+            <button id="DebugToggle-button">START DEBUG</button>
+            <button id="Stop-button">STOP</button>
+        `;
+        document.getElementById("parameters").style.display = "none";
+        const debugBtn = document.querySelector("#DebugToggle-button");
+        debugBtn.addEventListener("click", () => {
+            if (debugBtn.innerText === "START DEBUG") {
+                startDebugMotor();
+                debugBtn.innerText = "STOP DEBUG";
+            } else {
+                stopDebugMotor();
+                debugBtn.innerText = "START DEBUG";
+            }
+        });
+        document.querySelector("#Stop-button").addEventListener("click", stopCommand);
     }else {
         // Set original buttons for normal mode
         control_buttonsDIV.innerHTML = `
