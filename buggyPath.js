@@ -67,8 +67,13 @@ function adjustCanvasZoomAndPan() {
     scale = zoomFactor * 0.8; // Applying some padding
 
     // Recalculate offsets for panning
-    canvasOffsetX = (canvas.width - contentWidth * scale) / 2;
-    canvasOffsetY = (canvas.height - contentHeight * scale) / 2;
+    
+    let centerX = (minX + maxX) / 2;
+    let centerY = (minY + maxY) / 2;
+    
+    let canvasOffsetX = (canvas.width / 2) - (centerX * PathScale) + panOffsetX;
+    let canvasOffsetY = (canvas.height / 2) - (centerY * PathScale) + panOffsetY;
+    
 
     // Update panOffsetX and panOffsetY with current panning
     panOffsetX = canvasOffsetX;
