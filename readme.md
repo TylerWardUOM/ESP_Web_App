@@ -35,4 +35,4 @@ Deployed on **Netlify**: [esp-group-2.netlify.app](https://esp-group-2.netlify.a
 ### Run path
 ![Run Path](media/Debug_Path.png)
 ### Motor Speed Plot
-![Motor Speed Plot](media/Debug_plot.png)
+![Motor Speed Plot](media/Debug_Plot.png)
